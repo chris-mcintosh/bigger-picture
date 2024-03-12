@@ -1,7 +1,7 @@
 node_modules
 .DS_Store
 .idea
-dist
+#dist
 public/demo.css
 public/demo.js
 public/videos/*
