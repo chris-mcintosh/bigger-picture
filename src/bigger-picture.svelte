@@ -301,6 +301,30 @@
 			},
 		}
 	}
+	const forceDownload = (blobUrl, filename) => {
+		let a = document.createElement('a')
+		a.download = filename
+		a.href = blobUrl
+		document.body.appendChild(a)
+		a.click()
+		a.remove()
+	}
+
+	const downloadPhoto = (url, filename) => {
+		if (!filename) filename = url.split('\\').pop().split('/').pop()
+		fetch(url, {
+			headers: new Headers({
+				Origin: location.origin,
+			}),
+			mode: 'cors',
+		})
+			.then((response) => response.blob())
+			.then((blob) => {
+				let blobUrl = window.URL.createObjectURL(blob)
+				forceDownload(blobUrl, filename)
+			})
+			.catch((e) => console.error(e))
+	}
 </script>
 
 {#if items}
@@ -346,8 +370,39 @@
 		{/key}
 
 		<div class="bp-controls" out:fly|local>
-			<!-- close button -->
-			<button class="bp-x" title="Close" aria-label="Close" on:click={close} />
+			<!-- Close button -->
+			<button
+				class="bp-base bp-x"
+				title="Close"
+				aria-label="Close"
+				on:click={close}
+			/>
+			<!-- External button -->
+			<button
+				class="bp-base bp-ext"
+				title="Open Fullsize"
+				aria-label="Open Fullsize"
+				on:click={() => {
+					const url = Object.hasOwn(activeItem, 'full')
+						? activeItem['full']
+						: activeItem['img']
+					window.open(url, '_blank')
+				}}
+			/>
+			<!-- Save button -->
+			<button
+				class="bp-base bp-save"
+				title="Save"
+				aria-label="Save"
+				on:click={() => {
+					const url = Object.hasOwn(activeItem, 'full')
+						? activeItem['full']
+						: activeItem['img']
+					downloadPhoto(url, url.replace(/.*\//, ''))
+				}}
+			/>
+			<!-- Save All -->
+			<!-- Share All  -->
 
 			{#if items.length > 1}
 				<!-- counter -->
