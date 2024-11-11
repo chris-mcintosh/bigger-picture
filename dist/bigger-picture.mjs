@@ -1,450 +1,215 @@
-/** @returns {void} */
-function noop() {}
-
-const identity = (x) => x;
-
-/**
- * @template T
- * @template S
- * @param {T} tar
- * @param {S} src
- * @returns {T & S}
- */
+function noop() { }
+const identity = x => x;
 function assign(tar, src) {
-	// @ts-ignore
-	for (const k in src) tar[k] = src[k];
-	return /** @type {T & S} */ (tar);
+    // @ts-ignore
+    for (const k in src)
+        tar[k] = src[k];
+    return tar;
 }
-
 function run(fn) {
-	return fn();
+    return fn();
 }
-
-/**
- * @param {Function[]} fns
- * @returns {void}
- */
 function run_all(fns) {
-	fns.forEach(run);
+    fns.forEach(run);
 }
-
-/**
- * @param {any} thing
- * @returns {thing is Function}
- */
 function is_function(thing) {
-	return typeof thing === 'function';
+    return typeof thing === 'function';
 }
-
-/** @returns {boolean} */
 function safe_not_equal(a, b) {
-	return a != a ? b == b : a !== b || (a && typeof a === 'object') || typeof a === 'function';
+    return a != a ? b == b : a !== b || ((a && typeof a === 'object') || typeof a === 'function');
 }
-
-let src_url_equal_anchor;
-
-/**
- * @param {string} element_src
- * @param {string} url
- * @returns {boolean}
- */
-function src_url_equal(element_src, url) {
-	if (element_src === url) return true;
-	if (!src_url_equal_anchor) {
-		src_url_equal_anchor = document.createElement('a');
-	}
-	// This is actually faster than doing URL(..).href
-	src_url_equal_anchor.href = url;
-	return element_src === src_url_equal_anchor.href;
-}
-
-/** @param {string} srcset */
-function split_srcset(srcset) {
-	return srcset.split(',').map((src) => src.trim().split(' ').filter(Boolean));
-}
-
-/**
- * @param {HTMLSourceElement | HTMLImageElement} element_srcset
- * @param {string | undefined | null} srcset
- * @returns {boolean}
- */
-function srcset_url_equal(element_srcset, srcset) {
-	const element_urls = split_srcset(element_srcset.srcset);
-	const urls = split_srcset(srcset || '');
-
-	return (
-		urls.length === element_urls.length &&
-		urls.every(
-			([url, width], i) =>
-				width === element_urls[i][1] &&
-				// We need to test both ways because Vite will create an a full URL with
-				// `new URL(asset, import.meta.url).href` for the client when `base: './'`, and the
-				// relative URLs inside srcset are not automatically resolved to absolute URLs by
-				// browsers (in contrast to img.src). This means both SSR and DOM code could
-				// contain relative or absolute URLs.
-				(src_url_equal(element_urls[i][0], url) || src_url_equal(url, element_urls[i][0]))
-		)
-	);
-}
-
-/** @returns {boolean} */
 function not_equal(a, b) {
-	return a != a ? b == b : a !== b;
+    return a != a ? b == b : a !== b;
 }
-
-/** @returns {boolean} */
 function is_empty(obj) {
-	return Object.keys(obj).length === 0;
+    return Object.keys(obj).length === 0;
 }
-
 function subscribe(store, ...callbacks) {
-	if (store == null) {
-		for (const callback of callbacks) {
-			callback(undefined);
-		}
-		return noop;
-	}
-	const unsub = store.subscribe(...callbacks);
-	return unsub.unsubscribe ? () => unsub.unsubscribe() : unsub;
+    if (store == null) {
+        return noop;
+    }
+    const unsub = store.subscribe(...callbacks);
+    return unsub.unsubscribe ? () => unsub.unsubscribe() : unsub;
 }
-
-/** @returns {void} */
 function component_subscribe(component, store, callback) {
-	component.$$.on_destroy.push(subscribe(store, callback));
+    component.$$.on_destroy.push(subscribe(store, callback));
 }
-
 function action_destroyer(action_result) {
-	return action_result && is_function(action_result.destroy) ? action_result.destroy : noop;
+    return action_result && is_function(action_result.destroy) ? action_result.destroy : noop;
 }
-
-/** @param {number | string} value
- * @returns {[number, string]}
- */
-function split_css_unit(value) {
-	const split = typeof value === 'string' && value.match(/^\s*(-?[\d.]+)([^\s]*)\s*$/);
-	return split ? [parseFloat(split[1]), split[2] || 'px'] : [/** @type {number} */ (value), 'px'];
-}
-
-/** @type {() => number} */
-let now = () => globalThis.performance.now() ;
-
-let raf = (cb) => requestAnimationFrame(cb) ;
+let now = () => globalThis.performance.now()
+    ;
+let raf = cb => requestAnimationFrame(cb) ;
 
 const tasks = new Set();
-
-/**
- * @param {number} now
- * @returns {void}
- */
 function run_tasks(now) {
-	tasks.forEach((task) => {
-		if (!task.c(now)) {
-			tasks.delete(task);
-			task.f();
-		}
-	});
-	if (tasks.size !== 0) raf(run_tasks);
+    tasks.forEach(task => {
+        if (!task.c(now)) {
+            tasks.delete(task);
+            task.f();
+        }
+    });
+    if (tasks.size !== 0)
+        raf(run_tasks);
 }
-
 /**
  * Creates a new task that runs on each raf frame
  * until it returns a falsy value or is aborted
- * @param {import('./private.js').TaskCallback} callback
- * @returns {import('./private.js').Task}
  */
 function loop(callback) {
-	/** @type {import('./private.js').TaskEntry} */
-	let task;
-	if (tasks.size === 0) raf(run_tasks);
-	return {
-		promise: new Promise((fulfill) => {
-			tasks.add((task = { c: callback, f: fulfill }));
-		}),
-		abort() {
-			tasks.delete(task);
-		}
-	};
+    let task;
+    if (tasks.size === 0)
+        raf(run_tasks);
+    return {
+        promise: new Promise(fulfill => {
+            tasks.add(task = { c: callback, f: fulfill });
+        }),
+        abort() {
+            tasks.delete(task);
+        }
+    };
 }
-
-/**
- * @param {Node} target
- * @param {Node} node
- * @returns {void}
- */
 function append(target, node) {
-	target.appendChild(node);
+    target.appendChild(node);
 }
-
-/**
- * @param {Node} node
- * @returns {CSSStyleSheet}
- */
 function append_empty_stylesheet(node) {
-	const style_element = element('style');
-	// For transitions to work without 'style-src: unsafe-inline' Content Security Policy,
-	// these empty tags need to be allowed with a hash as a workaround until we move to the Web Animations API.
-	// Using the hash for the empty string (for an empty tag) works in all browsers except Safari.
-	// So as a workaround for the workaround, when we append empty style tags we set their content to /* empty */.
-	// The hash 'sha256-9OlNO0DNEeaVzHL4RZwCLsBHA8WBQ8toBp/4F5XV2nc=' will then work even in Safari.
-	style_element.textContent = '/* empty */';
-	append_stylesheet(document, style_element);
-	return style_element.sheet;
+    const style_element = element('style');
+    append_stylesheet(document, style_element);
+    return style_element.sheet;
 }
-
-/**
- * @param {ShadowRoot | Document} node
- * @param {HTMLStyleElement} style
- * @returns {CSSStyleSheet}
- */
 function append_stylesheet(node, style) {
-	append(/** @type {Document} */ (node).head || node, style);
-	return style.sheet;
+    append(node.head || node, style);
+    return style.sheet;
 }
-
-/**
- * @param {Node} target
- * @param {Node} node
- * @param {Node} [anchor]
- * @returns {void}
- */
 function insert(target, node, anchor) {
-	target.insertBefore(node, anchor || null);
+    target.insertBefore(node, anchor || null);
 }
-
-/**
- * @param {Node} node
- * @returns {void}
- */
 function detach(node) {
-	if (node.parentNode) {
-		node.parentNode.removeChild(node);
-	}
+    if (node.parentNode) {
+        node.parentNode.removeChild(node);
+    }
 }
-
-/**
- * @template {keyof HTMLElementTagNameMap} K
- * @param {K} name
- * @returns {HTMLElementTagNameMap[K]}
- */
 function element(name) {
-	return document.createElement(name);
+    return document.createElement(name);
 }
-
-/**
- * @param {string} data
- * @returns {Text}
- */
 function text(data) {
-	return document.createTextNode(data);
+    return document.createTextNode(data);
 }
-
-/**
- * @returns {Text} */
 function empty() {
-	return text('');
+    return text('');
 }
-
-/**
- * @param {EventTarget} node
- * @param {string} event
- * @param {EventListenerOrEventListenerObject} handler
- * @param {boolean | AddEventListenerOptions | EventListenerOptions} [options]
- * @returns {() => void}
- */
 function listen(node, event, handler, options) {
-	node.addEventListener(event, handler, options);
-	return () => node.removeEventListener(event, handler, options);
+    node.addEventListener(event, handler, options);
+    return () => node.removeEventListener(event, handler, options);
 }
-
-/**
- * @param {Element} node
- * @param {string} attribute
- * @param {string} [value]
- * @returns {void}
- */
 function attr(node, attribute, value) {
-	if (value == null) node.removeAttribute(attribute);
-	else if (node.getAttribute(attribute) !== value) node.setAttribute(attribute, value);
+    if (value == null)
+        node.removeAttribute(attribute);
+    else if (node.getAttribute(attribute) !== value)
+        node.setAttribute(attribute, value);
 }
-
-/**
- * @returns {void} */
 function set_style(node, key, value, important) {
-	if (value == null) {
-		node.style.removeProperty(key);
-	} else {
-		node.style.setProperty(key, value);
-	}
+    if (value === null) {
+        node.style.removeProperty(key);
+    }
+    else {
+        node.style.setProperty(key, value);
+    }
 }
-
-/**
- * @returns {void} */
 function toggle_class(element, name, toggle) {
-	// The `!!` is required because an `undefined` flag means flipping the current state.
-	element.classList.toggle(name, !!toggle);
+    element.classList[toggle ? 'add' : 'remove'](name);
 }
-
-/**
- * @template T
- * @param {string} type
- * @param {T} [detail]
- * @param {{ bubbles?: boolean, cancelable?: boolean }} [options]
- * @returns {CustomEvent<T>}
- */
 function custom_event(type, detail, { bubbles = false, cancelable = false } = {}) {
-	return new CustomEvent(type, { detail, bubbles, cancelable });
+    const e = document.createEvent('CustomEvent');
+    e.initCustomEvent(type, bubbles, cancelable, detail);
+    return e;
 }
-
-/**
- * @typedef {Node & {
- * 	claim_order?: number;
- * 	hydrate_init?: true;
- * 	actual_end_child?: NodeEx;
- * 	childNodes: NodeListOf<NodeEx>;
- * }} NodeEx
- */
-
-/** @typedef {ChildNode & NodeEx} ChildNodeEx */
-
-/** @typedef {NodeEx & { claim_order: number }} NodeEx2 */
-
-/**
- * @typedef {ChildNodeEx[] & {
- * 	claim_info?: {
- * 		last_index: number;
- * 		total_claimed: number;
- * 	};
- * }} ChildNodeArray
- */
 
 // we need to store the information for multiple documents because a Svelte application could also contain iframes
 // https://github.com/sveltejs/svelte/issues/3624
-/** @type {Map<Document | ShadowRoot, import('./private.d.ts').StyleInformation>} */
 const managed_styles = new Map();
-
 let active = 0;
-
 // https://github.com/darkskyapp/string-hash/blob/master/index.js
-/**
- * @param {string} str
- * @returns {number}
- */
 function hash(str) {
-	let hash = 5381;
-	let i = str.length;
-	while (i--) hash = ((hash << 5) - hash) ^ str.charCodeAt(i);
-	return hash >>> 0;
+    let hash = 5381;
+    let i = str.length;
+    while (i--)
+        hash = ((hash << 5) - hash) ^ str.charCodeAt(i);
+    return hash >>> 0;
 }
-
-/**
- * @param {Document | ShadowRoot} doc
- * @param {Element & ElementCSSInlineStyle} node
- * @returns {{ stylesheet: any; rules: {}; }}
- */
 function create_style_information(doc, node) {
-	const info = { stylesheet: append_empty_stylesheet(), rules: {} };
-	managed_styles.set(doc, info);
-	return info;
+    const info = { stylesheet: append_empty_stylesheet(), rules: {} };
+    managed_styles.set(doc, info);
+    return info;
 }
-
-/**
- * @param {Element & ElementCSSInlineStyle} node
- * @param {number} a
- * @param {number} b
- * @param {number} duration
- * @param {number} delay
- * @param {(t: number) => number} ease
- * @param {(t: number, u: number) => string} fn
- * @param {number} uid
- * @returns {string}
- */
 function create_rule(node, a, b, duration, delay, ease, fn, uid = 0) {
-	const step = 16.666 / duration;
-	let keyframes = '{\n';
-	for (let p = 0; p <= 1; p += step) {
-		const t = a + (b - a) * ease(p);
-		keyframes += p * 100 + `%{${fn(t, 1 - t)}}\n`;
-	}
-	const rule = keyframes + `100% {${fn(b, 1 - b)}}\n}`;
-	const name = `_bp_${hash(rule)}_${uid}`;
-	const doc = document;
-	const { stylesheet, rules } = managed_styles.get(doc) || create_style_information(doc);
-	if (!rules[name]) {
-		rules[name] = true;
-		stylesheet.insertRule(`@keyframes ${name} ${rule}`, stylesheet.cssRules.length);
-	}
-	const animation = node.style.animation || '';
-	node.style.animation = `${
-		animation ? `${animation}, ` : ''
-	}${name} ${duration}ms linear ${delay}ms 1 both`;
-	active += 1;
-	return name;
+    const step = 16.666 / duration;
+    let keyframes = '{\n';
+    for (let p = 0; p <= 1; p += step) {
+        const t = a + (b - a) * ease(p);
+        keyframes += p * 100 + `%{${fn(t, 1 - t)}}\n`;
+    }
+    const rule = keyframes + `100% {${fn(b, 1 - b)}}\n}`;
+    const name = `_bp_${hash(rule)}_${uid}`;
+    const doc = document;
+    const { stylesheet, rules } = managed_styles.get(doc) || create_style_information(doc);
+    if (!rules[name]) {
+        rules[name] = true;
+        stylesheet.insertRule(`@keyframes ${name} ${rule}`, stylesheet.cssRules.length);
+    }
+    const animation = node.style.animation || '';
+    node.style.animation = `${animation ? `${animation}, ` : ''}${name} ${duration}ms linear ${delay}ms 1 both`;
+    active += 1;
+    return name;
 }
-
-/**
- * @param {Element & ElementCSSInlineStyle} node
- * @param {string} [name]
- * @returns {void}
- */
 function delete_rule(node, name) {
-	const previous = (node.style.animation || '').split(', ');
-	const next = previous.filter(
-		name
-			? (anim) => anim.indexOf(name) < 0 // remove specific animation
-			: (anim) => anim.indexOf('_bp') === -1 // remove all Svelte animations
-	);
-	const deleted = previous.length - next.length;
-	if (deleted) {
-		node.style.animation = next.join(', ');
-		active -= deleted;
-		if (!active) clear_rules();
-	}
+    const previous = (node.style.animation || '').split(', ');
+    const next = previous.filter(name
+        ? anim => anim.indexOf(name) < 0 // remove specific animation
+        : anim => anim.indexOf('_bp') === -1 // remove all Svelte animations
+    );
+    const deleted = previous.length - next.length;
+    if (deleted) {
+        node.style.animation = next.join(', ');
+        active -= deleted;
+        if (!active)
+            clear_rules();
+    }
 }
-
-/** @returns {void} */
 function clear_rules() {
-	raf(() => {
-		if (active) return;
-		managed_styles.forEach((info) => {
-			const { ownerNode } = info.stylesheet;
-			// there is no ownerNode if it runs on jsdom.
-			if (ownerNode) detach(ownerNode);
-		});
-		managed_styles.clear();
-	});
+    raf(() => {
+        if (active)
+            return;
+        managed_styles.forEach(info => {
+            const { ownerNode } = info.stylesheet;
+            // there is no ownerNode if it runs on jsdom.
+            if (ownerNode)
+                detach(ownerNode);
+        });
+        managed_styles.clear();
+    });
 }
 
 let current_component;
-
-/** @returns {void} */
 function set_current_component(component) {
-	current_component = component;
+    current_component = component;
 }
 
 const dirty_components = [];
 const binding_callbacks = [];
-
-let render_callbacks = [];
-
+const render_callbacks = [];
 const flush_callbacks = [];
-
-const resolved_promise = /* @__PURE__ */ Promise.resolve();
-
+const resolved_promise = Promise.resolve();
 let update_scheduled = false;
-
-/** @returns {void} */
 function schedule_update() {
-	if (!update_scheduled) {
-		update_scheduled = true;
-		resolved_promise.then(flush);
-	}
+    if (!update_scheduled) {
+        update_scheduled = true;
+        resolved_promise.then(flush);
+    }
 }
-
-/** @returns {void} */
 function add_render_callback(fn) {
-	render_callbacks.push(fn);
+    render_callbacks.push(fn);
 }
-
 // flush() calls callbacks in this order:
 // 1. All beforeUpdate callbacks, in order: parents before children
 // 2. All bind:this callbacks, in reverse order: children before parents.
@@ -464,784 +229,519 @@ function add_render_callback(fn) {
 //    callback called a second time; the seen_callbacks set, outside the flush()
 //    function, guarantees this behavior.
 const seen_callbacks = new Set();
-
 let flushidx = 0; // Do *not* move this inside the flush() function
-
-/** @returns {void} */
 function flush() {
-	// Do not reenter flush while dirty components are updated, as this can
-	// result in an infinite loop. Instead, let the inner flush handle it.
-	// Reentrancy is ok afterwards for bindings etc.
-	if (flushidx !== 0) {
-		return;
-	}
-	const saved_component = current_component;
-	do {
-		// first, call beforeUpdate functions
-		// and update components
-		try {
-			while (flushidx < dirty_components.length) {
-				const component = dirty_components[flushidx];
-				flushidx++;
-				set_current_component(component);
-				update(component.$$);
-			}
-		} catch (e) {
-			// reset dirty state to not end up in a deadlocked state and then rethrow
-			dirty_components.length = 0;
-			flushidx = 0;
-			throw e;
-		}
-		set_current_component(null);
-		dirty_components.length = 0;
-		flushidx = 0;
-		while (binding_callbacks.length) binding_callbacks.pop()();
-		// then, once components are updated, call
-		// afterUpdate functions. This may cause
-		// subsequent updates...
-		for (let i = 0; i < render_callbacks.length; i += 1) {
-			const callback = render_callbacks[i];
-			if (!seen_callbacks.has(callback)) {
-				// ...so guard against infinite loops
-				seen_callbacks.add(callback);
-				callback();
-			}
-		}
-		render_callbacks.length = 0;
-	} while (dirty_components.length);
-	while (flush_callbacks.length) {
-		flush_callbacks.pop()();
-	}
-	update_scheduled = false;
-	seen_callbacks.clear();
-	set_current_component(saved_component);
+    // Do not reenter flush while dirty components are updated, as this can
+    // result in an infinite loop. Instead, let the inner flush handle it.
+    // Reentrancy is ok afterwards for bindings etc.
+    if (flushidx !== 0) {
+        return;
+    }
+    const saved_component = current_component;
+    do {
+        // first, call beforeUpdate functions
+        // and update components
+        try {
+            while (flushidx < dirty_components.length) {
+                const component = dirty_components[flushidx];
+                flushidx++;
+                set_current_component(component);
+                update(component.$$);
+            }
+        }
+        catch (e) {
+            // reset dirty state to not end up in a deadlocked state and then rethrow
+            dirty_components.length = 0;
+            flushidx = 0;
+            throw e;
+        }
+        set_current_component(null);
+        dirty_components.length = 0;
+        flushidx = 0;
+        while (binding_callbacks.length)
+            binding_callbacks.pop()();
+        // then, once components are updated, call
+        // afterUpdate functions. This may cause
+        // subsequent updates...
+        for (let i = 0; i < render_callbacks.length; i += 1) {
+            const callback = render_callbacks[i];
+            if (!seen_callbacks.has(callback)) {
+                // ...so guard against infinite loops
+                seen_callbacks.add(callback);
+                callback();
+            }
+        }
+        render_callbacks.length = 0;
+    } while (dirty_components.length);
+    while (flush_callbacks.length) {
+        flush_callbacks.pop()();
+    }
+    update_scheduled = false;
+    seen_callbacks.clear();
+    set_current_component(saved_component);
 }
-
-/** @returns {void} */
 function update($$) {
-	if ($$.fragment !== null) {
-		$$.update();
-		run_all($$.before_update);
-		const dirty = $$.dirty;
-		$$.dirty = [-1];
-		$$.fragment && $$.fragment.p($$.ctx, dirty);
-		$$.after_update.forEach(add_render_callback);
-	}
+    if ($$.fragment !== null) {
+        $$.update();
+        run_all($$.before_update);
+        const dirty = $$.dirty;
+        $$.dirty = [-1];
+        $$.fragment && $$.fragment.p($$.ctx, dirty);
+        $$.after_update.forEach(add_render_callback);
+    }
 }
 
-/**
- * Useful for example to execute remaining `afterUpdate` callbacks before executing `destroy`.
- * @param {Function[]} fns
- * @returns {void}
- */
-function flush_render_callbacks(fns) {
-	const filtered = [];
-	const targets = [];
-	render_callbacks.forEach((c) => (fns.indexOf(c) === -1 ? filtered.push(c) : targets.push(c)));
-	targets.forEach((c) => c());
-	render_callbacks = filtered;
-}
-
-/**
- * @type {Promise<void> | null}
- */
 let promise;
-
-/**
- * @returns {Promise<void>}
- */
 function wait() {
-	if (!promise) {
-		promise = Promise.resolve();
-		promise.then(() => {
-			promise = null;
-		});
-	}
-	return promise;
+    if (!promise) {
+        promise = Promise.resolve();
+        promise.then(() => {
+            promise = null;
+        });
+    }
+    return promise;
 }
-
-/**
- * @param {Element} node
- * @param {INTRO | OUTRO | boolean} direction
- * @param {'start' | 'end'} kind
- * @returns {void}
- */
 function dispatch(node, direction, kind) {
-	node.dispatchEvent(custom_event(`${direction ? 'intro' : 'outro'}${kind}`));
+    node.dispatchEvent(custom_event(`${direction ? 'intro' : 'outro'}${kind}`));
 }
-
 const outroing = new Set();
-
-/**
- * @type {Outro}
- */
 let outros;
-
-/**
- * @returns {void} */
 function group_outros() {
-	outros = {
-		r: 0,
-		c: [],
-		p: outros // parent group
-	};
+    outros = {
+        r: 0,
+        c: [],
+        p: outros // parent group
+    };
 }
-
-/**
- * @returns {void} */
 function check_outros() {
-	if (!outros.r) {
-		run_all(outros.c);
-	}
-	outros = outros.p;
+    if (!outros.r) {
+        run_all(outros.c);
+    }
+    outros = outros.p;
 }
-
-/**
- * @param {import('./private.js').Fragment} block
- * @param {0 | 1} [local]
- * @returns {void}
- */
 function transition_in(block, local) {
-	if (block && block.i) {
-		outroing.delete(block);
-		block.i(local);
-	}
+    if (block && block.i) {
+        outroing.delete(block);
+        block.i(local);
+    }
 }
-
-/**
- * @param {import('./private.js').Fragment} block
- * @param {0 | 1} local
- * @param {0 | 1} [detach]
- * @param {() => void} [callback]
- * @returns {void}
- */
 function transition_out(block, local, detach, callback) {
-	if (block && block.o) {
-		if (outroing.has(block)) return;
-		outroing.add(block);
-		outros.c.push(() => {
-			outroing.delete(block);
-			if (callback) {
-				if (detach) block.d(1);
-				callback();
-			}
-		});
-		block.o(local);
-	} else if (callback) {
-		callback();
-	}
+    if (block && block.o) {
+        if (outroing.has(block))
+            return;
+        outroing.add(block);
+        outros.c.push(() => {
+            outroing.delete(block);
+            if (callback) {
+                if (detach)
+                    block.d(1);
+                callback();
+            }
+        });
+        block.o(local);
+    }
+    else if (callback) {
+        callback();
+    }
 }
-
-/**
- * @type {import('../transition/public.js').TransitionConfig}
- */
 const null_transition = { duration: 0 };
-
-/**
- * @param {Element & ElementCSSInlineStyle} node
- * @param {TransitionFn} fn
- * @param {any} params
- * @returns {{ start(): void; invalidate(): void; end(): void; }}
- */
 function create_in_transition(node, fn, params) {
-	/**
-	 * @type {TransitionOptions} */
-	const options = { direction: 'in' };
-	let config = fn(node, params, options);
-	let running = false;
-	let animation_name;
-	let task;
-	let uid = 0;
-
-	/**
-	 * @returns {void} */
-	function cleanup() {
-		if (animation_name) delete_rule(node, animation_name);
-	}
-
-	/**
-	 * @returns {void} */
-	function go() {
-		const {
-			delay = 0,
-			duration = 300,
-			easing = identity,
-			tick = noop,
-			css
-		} = config || null_transition;
-		if (css) animation_name = create_rule(node, 0, 1, duration, delay, easing, css, uid++);
-		tick(0, 1);
-		const start_time = now() + delay;
-		const end_time = start_time + duration;
-		if (task) task.abort();
-		running = true;
-		add_render_callback(() => dispatch(node, true, 'start'));
-		task = loop((now) => {
-			if (running) {
-				if (now >= end_time) {
-					tick(1, 0);
-					dispatch(node, true, 'end');
-					cleanup();
-					return (running = false);
-				}
-				if (now >= start_time) {
-					const t = easing((now - start_time) / duration);
-					tick(t, 1 - t);
-				}
-			}
-			return running;
-		});
-	}
-	let started = false;
-	return {
-		start() {
-			if (started) return;
-			started = true;
-			delete_rule(node);
-			if (is_function(config)) {
-				config = config(options);
-				wait().then(go);
-			} else {
-				go();
-			}
-		},
-		invalidate() {
-			started = false;
-		},
-		end() {
-			if (running) {
-				cleanup();
-				running = false;
-			}
-		}
-	};
+    const options = { direction: 'in' };
+    let config = fn(node, params, options);
+    let running = false;
+    let animation_name;
+    let task;
+    let uid = 0;
+    function cleanup() {
+        if (animation_name)
+            delete_rule(node, animation_name);
+    }
+    function go() {
+        const { delay = 0, duration = 300, easing = identity, tick = noop, css } = config || null_transition;
+        if (css)
+            animation_name = create_rule(node, 0, 1, duration, delay, easing, css, uid++);
+        tick(0, 1);
+        const start_time = now() + delay;
+        const end_time = start_time + duration;
+        if (task)
+            task.abort();
+        running = true;
+        add_render_callback(() => dispatch(node, true, 'start'));
+        task = loop(now => {
+            if (running) {
+                if (now >= end_time) {
+                    tick(1, 0);
+                    dispatch(node, true, 'end');
+                    cleanup();
+                    return running = false;
+                }
+                if (now >= start_time) {
+                    const t = easing((now - start_time) / duration);
+                    tick(t, 1 - t);
+                }
+            }
+            return running;
+        });
+    }
+    let started = false;
+    return {
+        start() {
+            if (started)
+                return;
+            started = true;
+            delete_rule(node);
+            if (is_function(config)) {
+                config = config(options);
+                wait().then(go);
+            }
+            else {
+                go();
+            }
+        },
+        invalidate() {
+            started = false;
+        },
+        end() {
+            if (running) {
+                cleanup();
+                running = false;
+            }
+        }
+    };
 }
-
-/**
- * @param {Element & ElementCSSInlineStyle} node
- * @param {TransitionFn} fn
- * @param {any} params
- * @returns {{ end(reset: any): void; }}
- */
 function create_out_transition(node, fn, params) {
-	/** @type {TransitionOptions} */
-	const options = { direction: 'out' };
-	let config = fn(node, params, options);
-	let running = true;
-	let animation_name;
-	const group = outros;
-	group.r += 1;
-	/** @type {boolean} */
-	let original_inert_value;
-
-	/**
-	 * @returns {void} */
-	function go() {
-		const {
-			delay = 0,
-			duration = 300,
-			easing = identity,
-			tick = noop,
-			css
-		} = config || null_transition;
-
-		if (css) animation_name = create_rule(node, 1, 0, duration, delay, easing, css);
-
-		const start_time = now() + delay;
-		const end_time = start_time + duration;
-		add_render_callback(() => dispatch(node, false, 'start'));
-
-		if ('inert' in node) {
-			original_inert_value = /** @type {HTMLElement} */ (node).inert;
-			node.inert = true;
-		}
-
-		loop((now) => {
-			if (running) {
-				if (now >= end_time) {
-					tick(0, 1);
-					dispatch(node, false, 'end');
-					if (!--group.r) {
-						// this will result in `end()` being called,
-						// so we don't need to clean up here
-						run_all(group.c);
-					}
-					return false;
-				}
-				if (now >= start_time) {
-					const t = easing((now - start_time) / duration);
-					tick(1 - t, t);
-				}
-			}
-			return running;
-		});
-	}
-
-	if (is_function(config)) {
-		wait().then(() => {
-			// @ts-ignore
-			config = config(options);
-			go();
-		});
-	} else {
-		go();
-	}
-
-	return {
-		end(reset) {
-			if (reset && 'inert' in node) {
-				node.inert = original_inert_value;
-			}
-			if (reset && config.tick) {
-				config.tick(1, 0);
-			}
-			if (running) {
-				if (animation_name) delete_rule(node, animation_name);
-				running = false;
-			}
-		}
-	};
+    const options = { direction: 'out' };
+    let config = fn(node, params, options);
+    let running = true;
+    let animation_name;
+    const group = outros;
+    group.r += 1;
+    function go() {
+        const { delay = 0, duration = 300, easing = identity, tick = noop, css } = config || null_transition;
+        if (css)
+            animation_name = create_rule(node, 1, 0, duration, delay, easing, css);
+        const start_time = now() + delay;
+        const end_time = start_time + duration;
+        add_render_callback(() => dispatch(node, false, 'start'));
+        loop(now => {
+            if (running) {
+                if (now >= end_time) {
+                    tick(0, 1);
+                    dispatch(node, false, 'end');
+                    if (!--group.r) {
+                        // this will result in `end()` being called,
+                        // so we don't need to clean up here
+                        run_all(group.c);
+                    }
+                    return false;
+                }
+                if (now >= start_time) {
+                    const t = easing((now - start_time) / duration);
+                    tick(1 - t, t);
+                }
+            }
+            return running;
+        });
+    }
+    if (is_function(config)) {
+        wait().then(() => {
+            // @ts-ignore
+            config = config(options);
+            go();
+        });
+    }
+    else {
+        go();
+    }
+    return {
+        end(reset) {
+            if (reset && config.tick) {
+                config.tick(1, 0);
+            }
+            if (running) {
+                if (animation_name)
+                    delete_rule(node, animation_name);
+                running = false;
+            }
+        }
+    };
 }
-
-/** @typedef {1} INTRO */
-/** @typedef {0} OUTRO */
-/** @typedef {{ direction: 'in' | 'out' | 'both' }} TransitionOptions */
-/** @typedef {(node: Element, params: any, options: TransitionOptions) => import('../transition/public.js').TransitionConfig} TransitionFn */
-
-/**
- * @typedef {Object} Outro
- * @property {number} r
- * @property {Function[]} c
- * @property {Object} p
- */
-
-/**
- * @typedef {Object} PendingProgram
- * @property {number} start
- * @property {INTRO|OUTRO} b
- * @property {Outro} [group]
- */
-
-/**
- * @typedef {Object} Program
- * @property {number} a
- * @property {INTRO|OUTRO} b
- * @property {1|-1} d
- * @property {number} duration
- * @property {number} start
- * @property {number} end
- * @property {Outro} [group]
- */
-
-/** @returns {void} */
 function create_component(block) {
-	block && block.c();
+    block && block.c();
 }
-
-/** @returns {void} */
-function mount_component(component, target, anchor) {
-	const { fragment, after_update } = component.$$;
-	fragment && fragment.m(target, anchor);
-	// onMount happens before the initial afterUpdate
-	add_render_callback(() => {
-		const new_on_destroy = component.$$.on_mount.map(run).filter(is_function);
-		// if the component was destroyed immediately
-		// it will update the `$$.on_destroy` reference to `null`.
-		// the destructured on_destroy may still reference to the old array
-		if (component.$$.on_destroy) {
-			component.$$.on_destroy.push(...new_on_destroy);
-		} else {
-			// Edge case - component was destroyed immediately,
-			// most likely as a result of a binding initialising
-			run_all(new_on_destroy);
-		}
-		component.$$.on_mount = [];
-	});
-	after_update.forEach(add_render_callback);
+function mount_component(component, target, anchor, customElement) {
+    const { fragment, after_update } = component.$$;
+    fragment && fragment.m(target, anchor);
+    if (!customElement) {
+        // onMount happens before the initial afterUpdate
+        add_render_callback(() => {
+            const new_on_destroy = component.$$.on_mount.map(run).filter(is_function);
+            // if the component was destroyed immediately
+            // it will update the `$$.on_destroy` reference to `null`.
+            // the destructured on_destroy may still reference to the old array
+            if (component.$$.on_destroy) {
+                component.$$.on_destroy.push(...new_on_destroy);
+            }
+            else {
+                // Edge case - component was destroyed immediately,
+                // most likely as a result of a binding initialising
+                run_all(new_on_destroy);
+            }
+            component.$$.on_mount = [];
+        });
+    }
+    after_update.forEach(add_render_callback);
 }
-
-/** @returns {void} */
 function destroy_component(component, detaching) {
-	const $$ = component.$$;
-	if ($$.fragment !== null) {
-		flush_render_callbacks($$.after_update);
-		run_all($$.on_destroy);
-		$$.fragment && $$.fragment.d(detaching);
-		// TODO null out other refs, including component.$$ (but need to
-		// preserve final state?)
-		$$.on_destroy = $$.fragment = null;
-		$$.ctx = [];
-	}
+    const $$ = component.$$;
+    if ($$.fragment !== null) {
+        run_all($$.on_destroy);
+        $$.fragment && $$.fragment.d(detaching);
+        // TODO null out other refs, including component.$$ (but need to
+        // preserve final state?)
+        $$.on_destroy = $$.fragment = null;
+        $$.ctx = [];
+    }
 }
-
-/** @returns {void} */
 function make_dirty(component, i) {
-	if (component.$$.dirty[0] === -1) {
-		dirty_components.push(component);
-		schedule_update();
-		component.$$.dirty.fill(0);
-	}
-	component.$$.dirty[(i / 31) | 0] |= 1 << i % 31;
+    if (component.$$.dirty[0] === -1) {
+        dirty_components.push(component);
+        schedule_update();
+        component.$$.dirty.fill(0);
+    }
+    component.$$.dirty[(i / 31) | 0] |= (1 << (i % 31));
 }
-
-// TODO: Document the other params
-/**
- * @param {SvelteComponent} component
- * @param {import('./public.js').ComponentConstructorOptions} options
- *
- * @param {import('./utils.js')['not_equal']} not_equal Used to compare props and state values.
- * @param {(target: Element | ShadowRoot) => void} [append_styles] Function that appends styles to the DOM when the component is first initialised.
- * This will be the `add_css` function from the compiled component.
- *
- * @returns {void}
- */
-function init(
-	component,
-	options,
-	instance,
-	create_fragment,
-	not_equal,
-	props,
-	append_styles = null,
-	dirty = [-1]
-) {
-	const parent_component = current_component;
-	set_current_component(component);
-	/** @type {import('./private.js').T$$} */
-	const $$ = (component.$$ = {
-		fragment: null,
-		ctx: [],
-		// state
-		props,
-		update: noop,
-		not_equal,
-		bound: {},
-		// lifecycle
-		on_mount: [],
-		on_destroy: [],
-		on_disconnect: [],
-		before_update: [],
-		after_update: [],
-		context: new Map(options.context || (parent_component ? parent_component.$$.context : [])),
-		// everything else
-		callbacks: {},
-		dirty,
-		skip_bound: false,
-		root: options.target || parent_component.$$.root
-	});
-	append_styles && append_styles($$.root);
-	let ready = false;
-	$$.ctx = instance
-		? instance(component, options.props || {}, (i, ret, ...rest) => {
-				const value = rest.length ? rest[0] : ret;
-				if ($$.ctx && not_equal($$.ctx[i], ($$.ctx[i] = value))) {
-					if (!$$.skip_bound && $$.bound[i]) $$.bound[i](value);
-					if (ready) make_dirty(component, i);
-				}
-				return ret;
-		  })
-		: [];
-	$$.update();
-	ready = true;
-	run_all($$.before_update);
-	// `false` as a special case of no DOM component
-	$$.fragment = create_fragment ? create_fragment($$.ctx) : false;
-	if (options.target) {
-		{
-			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-			$$.fragment && $$.fragment.c();
-		}
-		mount_component(component, options.target, options.anchor);
-		flush();
-	}
-	set_current_component(parent_component);
+function init(component, options, instance, create_fragment, not_equal, props, append_styles, dirty = [-1]) {
+    const parent_component = current_component;
+    set_current_component(component);
+    const $$ = component.$$ = {
+        fragment: null,
+        ctx: [],
+        // state
+        props,
+        update: noop,
+        not_equal,
+        bound: {},
+        // lifecycle
+        on_mount: [],
+        on_destroy: [],
+        on_disconnect: [],
+        before_update: [],
+        after_update: [],
+        context: new Map(options.context || (parent_component ? parent_component.$$.context : [])),
+        // everything else
+        callbacks: {},
+        dirty,
+        skip_bound: false,
+        root: options.target || parent_component.$$.root
+    };
+    append_styles && append_styles($$.root);
+    let ready = false;
+    $$.ctx = instance
+        ? instance(component, options.props || {}, (i, ret, ...rest) => {
+            const value = rest.length ? rest[0] : ret;
+            if ($$.ctx && not_equal($$.ctx[i], $$.ctx[i] = value)) {
+                if (!$$.skip_bound && $$.bound[i])
+                    $$.bound[i](value);
+                if (ready)
+                    make_dirty(component, i);
+            }
+            return ret;
+        })
+        : [];
+    $$.update();
+    ready = true;
+    run_all($$.before_update);
+    // `false` as a special case of no DOM component
+    $$.fragment = create_fragment ? create_fragment($$.ctx) : false;
+    if (options.target) {
+        {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            $$.fragment && $$.fragment.c();
+        }
+        mount_component(component, options.target, options.anchor, options.customElement);
+        flush();
+    }
+    set_current_component(parent_component);
 }
-
 /**
  * Base class for Svelte components. Used when dev=false.
- *
- * @template {Record<string, any>} [Props=any]
- * @template {Record<string, any>} [Events=any]
  */
 class SvelteComponent {
-	/**
-	 * ### PRIVATE API
-	 *
-	 * Do not use, may change at any time
-	 *
-	 * @type {any}
-	 */
-	$$ = undefined;
-	/**
-	 * ### PRIVATE API
-	 *
-	 * Do not use, may change at any time
-	 *
-	 * @type {any}
-	 */
-	$$set = undefined;
-
-	/** @returns {void} */
-	$destroy() {
-		destroy_component(this, 1);
-		this.$destroy = noop;
-	}
-
-	/**
-	 * @template {Extract<keyof Events, string>} K
-	 * @param {K} type
-	 * @param {((e: Events[K]) => void) | null | undefined} callback
-	 * @returns {() => void}
-	 */
-	$on(type, callback) {
-		if (!is_function(callback)) {
-			return noop;
-		}
-		const callbacks = this.$$.callbacks[type] || (this.$$.callbacks[type] = []);
-		callbacks.push(callback);
-		return () => {
-			const index = callbacks.indexOf(callback);
-			if (index !== -1) callbacks.splice(index, 1);
-		};
-	}
-
-	/**
-	 * @param {Partial<Props>} props
-	 * @returns {void}
-	 */
-	$set(props) {
-		if (this.$$set && !is_empty(props)) {
-			this.$$.skip_bound = true;
-			this.$$set(props);
-			this.$$.skip_bound = false;
-		}
-	}
+    $destroy() {
+        destroy_component(this, 1);
+        this.$destroy = noop;
+    }
+    $on(type, callback) {
+        if (!is_function(callback)) {
+            return noop;
+        }
+        const callbacks = (this.$$.callbacks[type] || (this.$$.callbacks[type] = []));
+        callbacks.push(callback);
+        return () => {
+            const index = callbacks.indexOf(callback);
+            if (index !== -1)
+                callbacks.splice(index, 1);
+        };
+    }
+    $set($$props) {
+        if (this.$$set && !is_empty($$props)) {
+            this.$$.skip_bound = true;
+            this.$$set($$props);
+            this.$$.skip_bound = false;
+        }
+    }
 }
 
-/**
- * @typedef {Object} CustomElementPropDefinition
- * @property {string} [attribute]
- * @property {boolean} [reflect]
- * @property {'String'|'Boolean'|'Number'|'Array'|'Object'} [type]
- */
-
-// generated during release, do not modify
-
-const PUBLIC_VERSION = '4';
-
-(globalThis._bp || (globalThis._bp = { v: new Set() })).v.add(PUBLIC_VERSION);
-
-/*
-Adapted from https://github.com/mattdesl
-Distributed under MIT License https://github.com/mattdesl/eases/blob/master/LICENSE.md
-*/
-
-/**
- * https://svelte.dev/docs/svelte-easing
- * @param {number} t
- * @returns {number}
- */
 function cubicOut(t) {
-	const f = t - 1.0;
-	return f * f * f + 1.0;
+    const f = t - 1.0;
+    return f * f * f + 1.0;
 }
 
-/**
- * Animates the x and y positions and the opacity of an element. `in` transitions animate from the provided values, passed as parameters to the element's default values. `out` transitions animate from the element's default values to the provided values.
- *
- * https://svelte.dev/docs/svelte-transition#fly
- * @param {Element} node
- * @param {import('./public').FlyParams} [params]
- * @returns {import('./public').TransitionConfig}
- */
-function fly(
-	node,
-	{ delay = 0, duration = 400, easing = cubicOut, x = 0, y = 0, opacity = 0 } = {}
-) {
-	const style = getComputedStyle(node);
-	const target_opacity = +style.opacity;
-	const transform = style.transform === 'none' ? '' : style.transform;
-	const od = target_opacity * (1 - opacity);
-	const [xValue, xUnit] = split_css_unit(x);
-	const [yValue, yUnit] = split_css_unit(y);
-	return {
-		delay,
-		duration,
-		easing,
-		css: (t, u) => `
-			transform: ${transform} translate(${(1 - t) * xValue}${xUnit}, ${(1 - t) * yValue}${yUnit});
-			opacity: ${target_opacity - od * u}`
-	};
+function fly(node, { delay = 0, duration = 400, easing = cubicOut, x = 0, y = 0, opacity = 0 } = {}) {
+    const style = getComputedStyle(node);
+    const target_opacity = +style.opacity;
+    const transform = style.transform === 'none' ? '' : style.transform;
+    const od = target_opacity * (1 - opacity);
+    return {
+        delay,
+        duration,
+        easing,
+        css: (t, u) => `
+			transform: ${transform} translate(${(1 - t) * x}px, ${(1 - t) * y}px);
+			opacity: ${target_opacity - (od * u)}`
+    };
 }
 
 const subscriber_queue = [];
-
 /**
  * Create a `Writable` store that allows both updating and reading by subscription.
- *
- * https://svelte.dev/docs/svelte-store#writable
- * @template T
- * @param {T} [value] initial value
- * @param {import('./public.js').StartStopNotifier<T>} [start]
- * @returns {import('./public.js').Writable<T>}
+ * @param {*=}value initial value
+ * @param {StartStopNotifier=}start start and stop notifications for subscriptions
  */
 function writable(value, start = noop) {
-	/** @type {import('./public.js').Unsubscriber} */
-	let stop;
-	/** @type {Set<import('./private.js').SubscribeInvalidateTuple<T>>} */
-	const subscribers = new Set();
-	/** @param {T} new_value
-	 * @returns {void}
-	 */
-	function set(new_value) {
-		if (safe_not_equal(value, new_value)) {
-			value = new_value;
-			if (stop) {
-				// store is ready
-				const run_queue = !subscriber_queue.length;
-				for (const subscriber of subscribers) {
-					subscriber[1]();
-					subscriber_queue.push(subscriber, value);
-				}
-				if (run_queue) {
-					for (let i = 0; i < subscriber_queue.length; i += 2) {
-						subscriber_queue[i][0](subscriber_queue[i + 1]);
-					}
-					subscriber_queue.length = 0;
-				}
-			}
-		}
-	}
-
-	/**
-	 * @param {import('./public.js').Updater<T>} fn
-	 * @returns {void}
-	 */
-	function update(fn) {
-		set(fn(value));
-	}
-
-	/**
-	 * @param {import('./public.js').Subscriber<T>} run
-	 * @param {import('./private.js').Invalidator<T>} [invalidate]
-	 * @returns {import('./public.js').Unsubscriber}
-	 */
-	function subscribe(run, invalidate = noop) {
-		/** @type {import('./private.js').SubscribeInvalidateTuple<T>} */
-		const subscriber = [run, invalidate];
-		subscribers.add(subscriber);
-		if (subscribers.size === 1) {
-			stop = start(set, update) || noop;
-		}
-		run(value);
-		return () => {
-			subscribers.delete(subscriber);
-			if (subscribers.size === 0 && stop) {
-				stop();
-				stop = null;
-			}
-		};
-	}
-	return { set, update, subscribe };
+    let stop;
+    const subscribers = new Set();
+    function set(new_value) {
+        if (safe_not_equal(value, new_value)) {
+            value = new_value;
+            if (stop) { // store is ready
+                const run_queue = !subscriber_queue.length;
+                for (const subscriber of subscribers) {
+                    subscriber[1]();
+                    subscriber_queue.push(subscriber, value);
+                }
+                if (run_queue) {
+                    for (let i = 0; i < subscriber_queue.length; i += 2) {
+                        subscriber_queue[i][0](subscriber_queue[i + 1]);
+                    }
+                    subscriber_queue.length = 0;
+                }
+            }
+        }
+    }
+    function update(fn) {
+        set(fn(value));
+    }
+    function subscribe(run, invalidate = noop) {
+        const subscriber = [run, invalidate];
+        subscribers.add(subscriber);
+        if (subscribers.size === 1) {
+            stop = start(set) || noop;
+        }
+        run(value);
+        return () => {
+            subscribers.delete(subscriber);
+            if (subscribers.size === 0) {
+                stop();
+                stop = null;
+            }
+        };
+    }
+    return { set, update, subscribe };
 }
 
-/** @returns {(t: any) => any} */
 function get_interpolator(a, b) {
-	if (a === b || a !== a) return () => a;
-	const type = typeof a;
-	if (Array.isArray(a)) {
-		const arr = b.map((bi, i) => {
-			return get_interpolator(a[i], bi);
-		});
-		return (t) => arr.map((fn) => fn(t));
-	}
-	if (type === 'number') {
-		const delta = b - a;
-		return (t) => a + t * delta;
-	}
-	
+    if (a === b || a !== a)
+        return () => a;
+    const type = typeof a;
+    if (Array.isArray(a)) {
+        const arr = b.map((bi, i) => {
+            return get_interpolator(a[i], bi);
+        });
+        return t => arr.map(fn => fn(t));
+    }
+    if (type === 'number') {
+        const delta = b - a;
+        return t => a + t * delta;
+    }
+    
 }
-
-/**
- * A tweened store in Svelte is a special type of store that provides smooth transitions between state values over time.
- *
- * https://svelte.dev/docs/svelte-motion#tweened
- * @template T
- * @param {T} [value]
- * @param {import('./private.js').TweenedOptions<T>} [defaults]
- * @returns {import('./public.js').Tweened<T>}
- */
 function tweened(value, defaults = {}) {
-	const store = writable(value);
-	/** @type {import('../internal/private.js').Task} */
-	let task;
-	let target_value = value;
-	/**
-	 * @param {T} new_value
-	 * @param {import('./private.js').TweenedOptions<T>} [opts]
-	 */
-	function set(new_value, opts) {
-		if (value == null) {
-			store.set((value = new_value));
-			return Promise.resolve();
-		}
-		target_value = new_value;
-		let previous_task = task;
-		let started = false;
-		let {
-			delay = 0,
-			duration = 400,
-			easing = identity,
-			interpolate = get_interpolator
-		} = assign(assign({}, defaults), opts);
-		if (duration === 0) {
-			if (previous_task) {
-				previous_task.abort();
-				previous_task = null;
-			}
-			store.set((value = target_value));
-			return Promise.resolve();
-		}
-		const start = now() + delay;
-		let fn;
-		task = loop((now) => {
-			if (now < start) return true;
-			if (!started) {
-				fn = interpolate(value, new_value);
-				if (typeof duration === 'function') duration = duration(value, new_value);
-				started = true;
-			}
-			if (previous_task) {
-				previous_task.abort();
-				previous_task = null;
-			}
-			const elapsed = now - start;
-			if (elapsed > /** @type {number} */ (duration)) {
-				store.set((value = new_value));
-				return false;
-			}
-			// @ts-ignore
-			store.set((value = fn(easing(elapsed / duration))));
-			return true;
-		});
-		return task.promise;
-	}
-	return {
-		set,
-		update: (fn, opts) => set(fn(target_value, value), opts),
-		subscribe: store.subscribe
-	};
+    const store = writable(value);
+    let task;
+    let target_value = value;
+    function set(new_value, opts) {
+        if (value == null) {
+            store.set(value = new_value);
+            return Promise.resolve();
+        }
+        target_value = new_value;
+        let previous_task = task;
+        let started = false;
+        let { delay = 0, duration = 400, easing = identity, interpolate = get_interpolator } = assign(assign({}, defaults), opts);
+        if (duration === 0) {
+            if (previous_task) {
+                previous_task.abort();
+                previous_task = null;
+            }
+            store.set(value = target_value);
+            return Promise.resolve();
+        }
+        const start = now() + delay;
+        let fn;
+        task = loop(now => {
+            if (now < start)
+                return true;
+            if (!started) {
+                fn = interpolate(value, new_value);
+                if (typeof duration === 'function')
+                    duration = duration(value, new_value);
+                started = true;
+            }
+            if (previous_task) {
+                previous_task.abort();
+                previous_task = null;
+            }
+            const elapsed = now - start;
+            if (elapsed > duration) {
+                store.set(value = new_value);
+                return false;
+            }
+            // @ts-ignore
+            store.set(value = fn(easing(elapsed / duration)));
+            return true;
+        });
+        return task.promise;
+    }
+    return {
+        set,
+        update: (fn, opts) => set(fn(target_value, value), opts),
+        subscribe: store.subscribe
+    };
 }
 
 /** true if gallery is in the process of closing */
 const closing = writable(0);
 
-/** store if user prefers reduced motion  */
+/** if user prefers reduced motion  */
 const prefersReducedMotion = globalThis.matchMedia?.(
 	'(prefers-reduced-motion: reduce)'
 ).matches;
 
-/** default options for tweens / transitions */
+/** default options for tweens / transitions
+ * @param {number} duration
+ */
 const defaultTweenOptions = (duration) => ({
 	easing: cubicOut,
 	duration: prefersReducedMotion ? 0 : duration,
@@ -1250,7 +750,25 @@ const defaultTweenOptions = (duration) => ({
 const getThumbBackground = (activeItem) =>
 	!activeItem.thumb || `url(${activeItem.thumb})`;
 
-/* src/components/loading.svelte generated by Svelte v4.2.10 */
+/**
+ * Adds attributes to the given node based on the provided object.
+ *
+ * @param {HTMLElement} node - The node to which attributes will be added
+ * @param {Record<string, string | boolean> | string} obj - The object containing key-value pairs of attributes to be added
+ */
+const addAttributes = (node, obj) => {
+	if (!obj) {
+		return
+	}
+	if (typeof obj === 'string') {
+		obj = JSON.parse(obj);
+	}
+	for (const key in obj) {
+		node.setAttribute(key, obj[key]);
+	}
+};
+
+/* src/components/loading.svelte generated by Svelte v3.55.1 */
 
 function create_if_block_1$2(ctx) {
 	let div;
@@ -1286,10 +804,7 @@ function create_if_block_1$2(ctx) {
 			current = false;
 		},
 		d(detaching) {
-			if (detaching) {
-				detach(div);
-			}
-
+			if (detaching) detach(div);
 			if (detaching && div_outro) div_outro.end();
 		}
 	};
@@ -1324,9 +839,7 @@ function create_if_block$2(ctx) {
 		},
 		o: noop,
 		d(detaching) {
-			if (detaching) {
-				detach(div);
-			}
+			if (detaching) detach(div);
 		}
 	};
 }
@@ -1400,13 +913,10 @@ function create_fragment$4(ctx) {
 			transition_out(if_block0);
 		},
 		d(detaching) {
-			if (detaching) {
-				detach(if_block0_anchor);
-				detach(if_block1_anchor);
-			}
-
 			if (if_block0) if_block0.d(detaching);
+			if (detaching) detach(if_block0_anchor);
 			if (if_block1) if_block1.d(detaching);
+			if (detaching) detach(if_block1_anchor);
 		}
 	};
 }
@@ -1432,11 +942,10 @@ class Loading extends SvelteComponent {
 	}
 }
 
-/* src/components/image.svelte generated by Svelte v4.2.10 */
+/* src/components/image.svelte generated by Svelte v3.55.1 */
 
 function create_if_block_1$1(ctx) {
 	let img;
-	let img_srcset_value;
 	let img_sizes_value;
 	let img_outro;
 	let current;
@@ -1446,7 +955,6 @@ function create_if_block_1$1(ctx) {
 	return {
 		c() {
 			img = element("img");
-			if (!srcset_url_equal(img, img_srcset_value = /*activeItem*/ ctx[7].img)) attr(img, "srcset", img_srcset_value);
 			attr(img, "sizes", img_sizes_value = /*opts*/ ctx[8].sizes || `${/*sizes*/ ctx[1]}px`);
 			attr(img, "alt", /*activeItem*/ ctx[7].alt);
 		},
@@ -1455,7 +963,11 @@ function create_if_block_1$1(ctx) {
 			current = true;
 
 			if (!mounted) {
-				dispose = listen(img, "error", /*error_handler*/ ctx[26]);
+				dispose = [
+					action_destroyer(/*addSrc*/ ctx[21].call(null, img)),
+					listen(img, "error", /*error_handler*/ ctx[27])
+				];
+
 				mounted = true;
 			}
 		},
@@ -1474,18 +986,15 @@ function create_if_block_1$1(ctx) {
 			current = false;
 		},
 		d(detaching) {
-			if (detaching) {
-				detach(img);
-			}
-
+			if (detaching) detach(img);
 			if (detaching && img_outro) img_outro.end();
 			mounted = false;
-			dispose();
+			run_all(dispose);
 		}
 	};
 }
 
-// (374:10) {#if showLoader}
+// (384:10) {#if showLoader}
 function create_if_block$1(ctx) {
 	let loading;
 	let current;
@@ -1637,13 +1146,7 @@ function create_fragment$3(ctx) {
 				toggle_class(div0, "bp-canzoom", /*maxZoom*/ ctx[11] > 1 && /*$imageDimensions*/ ctx[0][0] < /*naturalWidth*/ ctx[12]);
 			}
 
-			const style_changed = dirty[0] & /*$imageDimensions*/ 1;
-
-			if (dirty[0] & /*$imageDimensions*/ 1 || style_changed) {
-				set_style(div0, "background-image", getThumbBackground(/*activeItem*/ ctx[7]));
-			}
-
-			if (dirty[0] & /*$imageDimensions, $zoomDragTranslate*/ 65 && style_transform !== (style_transform = `translate3d(${/*$imageDimensions*/ ctx[0][0] / -2 + /*$zoomDragTranslate*/ ctx[6][0]}px, ${/*$imageDimensions*/ ctx[0][1] / -2 + /*$zoomDragTranslate*/ ctx[6][1]}px, 0)`) || style_changed) {
+			if (dirty[0] & /*$imageDimensions, $zoomDragTranslate*/ 65 && style_transform !== (style_transform = `translate3d(${/*$imageDimensions*/ ctx[0][0] / -2 + /*$zoomDragTranslate*/ ctx[6][0]}px, ${/*$imageDimensions*/ ctx[0][1] / -2 + /*$zoomDragTranslate*/ ctx[6][1]}px, 0)`)) {
 				set_style(div0, "transform", style_transform);
 			}
 
@@ -1663,10 +1166,7 @@ function create_fragment$3(ctx) {
 			current = false;
 		},
 		d(detaching) {
-			if (detaching) {
-				detach(div1);
-			}
-
+			if (detaching) detach(div1);
 			if (if_block0) if_block0.d();
 			if (if_block1) if_block1.d();
 			mounted = false;
@@ -1680,11 +1180,11 @@ function instance$3($$self, $$props, $$invalidate) {
 	let $zoomDragTranslate;
 	let $closing;
 	let $imageDimensions;
-	component_subscribe($$self, closing, $$value => $$invalidate(25, $closing = $$value));
+	component_subscribe($$self, closing, $$value => $$invalidate(26, $closing = $$value));
 	let { props } = $$props;
 	let { smallScreen } = $$props;
 	let { activeItem, opts, prev, next, zoomed, container } = props;
-	component_subscribe($$self, zoomed, value => $$invalidate(24, $zoomed = value));
+	component_subscribe($$self, zoomed, value => $$invalidate(25, $zoomed = value));
 	let maxZoom = activeItem.maxZoom || opts.maxZoom || 10;
 	let calculatedDimensions = props.calculateDimensions(activeItem);
 
@@ -1999,7 +1499,7 @@ function instance$3($$self, $$props, $$invalidate) {
 
 		// handle globalThis resize
 		props.setResizeFunc(() => {
-			$$invalidate(23, calculatedDimensions = props.calculateDimensions(activeItem));
+			$$invalidate(24, calculatedDimensions = props.calculateDimensions(activeItem));
 
 			// adjust image size / zoom on resize, but not on mobile because
 			// some browsers (ios safari 15) constantly resize screen on drag
@@ -2024,19 +1524,24 @@ function instance$3($$self, $$props, $$invalidate) {
 		);
 	};
 
+	const addSrc = node => {
+		addAttributes(node, activeItem.attr);
+		node.srcset = activeItem.img;
+	};
+
 	const error_handler = error => opts.onError?.(container, activeItem, error);
 
 	$$self.$$set = $$props => {
 		
-		if ('smallScreen' in $$props) $$invalidate(22, smallScreen = $$props.smallScreen);
+		if ('smallScreen' in $$props) $$invalidate(23, smallScreen = $$props.smallScreen);
 	};
 
 	$$self.$$.update = () => {
-		if ($$self.$$.dirty[0] & /*$imageDimensions, calculatedDimensions*/ 8388609) {
+		if ($$self.$$.dirty[0] & /*$imageDimensions, calculatedDimensions*/ 16777217) {
 			zoomed.set($imageDimensions[0] - 10 > calculatedDimensions[0]);
 		}
 
-		if ($$self.$$.dirty[0] & /*$closing, $zoomed, calculatedDimensions*/ 58720256) {
+		if ($$self.$$.dirty[0] & /*$closing, $zoomed, calculatedDimensions*/ 117440512) {
 			// if zoomed while closing, zoom out image and add class
 			// to change contain value on .bp-wrap to avoid cropping
 			if ($closing && $zoomed && !opts.intro) {
@@ -2070,6 +1575,7 @@ function instance$3($$self, $$props, $$invalidate) {
 		removeEventFromCache,
 		onPointerUp,
 		onMount,
+		addSrc,
 		props,
 		smallScreen,
 		calculatedDimensions,
@@ -2082,11 +1588,11 @@ function instance$3($$self, $$props, $$invalidate) {
 class Image extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance$3, create_fragment$3, not_equal, { props: 21, smallScreen: 22 }, null, [-1, -1]);
+		init(this, options, instance$3, create_fragment$3, not_equal, { props: 22, smallScreen: 23 }, null, [-1, -1]);
 	}
 }
 
-/* src/components/iframe.svelte generated by Svelte v4.2.10 */
+/* src/components/iframe.svelte generated by Svelte v3.55.1 */
 
 function create_fragment$2(ctx) {
 	let div;
@@ -2152,10 +1658,7 @@ function create_fragment$2(ctx) {
 			current = false;
 		},
 		d(detaching) {
-			if (detaching) {
-				detach(div);
-			}
-
+			if (detaching) detach(div);
 			destroy_component(loading);
 			mounted = false;
 			run_all(dispose);
@@ -2171,8 +1674,10 @@ function instance$2($$self, $$props, $$invalidate) {
 	setDimensions();
 	props.setResizeFunc(setDimensions);
 
-	// add src ourselves to avoid src_url_equal call (svelte stuff)
-	const addSrc = node => node.src = activeItem.iframe;
+	const addSrc = node => {
+		addAttributes(node, activeItem.attr);
+		node.src = activeItem.iframe;
+	};
 
 	const load_handler = () => $$invalidate(0, loaded = true);
 
@@ -2188,7 +1693,7 @@ class Iframe extends SvelteComponent {
 	}
 }
 
-/* src/components/video.svelte generated by Svelte v4.2.10 */
+/* src/components/video.svelte generated by Svelte v3.55.1 */
 
 function create_fragment$1(ctx) {
 	let div;
@@ -2235,12 +1740,6 @@ function create_fragment$1(ctx) {
 			if (!current || dirty & /*dimensions*/ 2) {
 				set_style(div, "height", /*dimensions*/ ctx[1][1] + "px");
 			}
-
-			const style_changed = dirty & /*dimensions*/ 2;
-
-			if (dirty & /*dimensions*/ 2 || style_changed) {
-				set_style(div, "background-image", getThumbBackground(/*activeItem*/ ctx[2]));
-			}
 		},
 		i(local) {
 			if (current) return;
@@ -2252,10 +1751,7 @@ function create_fragment$1(ctx) {
 			current = false;
 		},
 		d(detaching) {
-			if (detaching) {
-				detach(div);
-			}
-
+			if (detaching) detach(div);
 			destroy_component(loading);
 			mounted = false;
 			dispose();
@@ -2271,13 +1767,6 @@ function instance$1($$self, $$props, $$invalidate) {
 	setDimensions();
 	props.setResizeFunc(setDimensions);
 
-	/** adds attributes to a node */
-	const addAttributes = (node, obj) => {
-		for (const key in obj) {
-			attr(node, key, obj[key]);
-		}
-	};
-
 	/** create audo / video element */
 	const onMount = node => {
 		let mediaElement;
@@ -2291,7 +1780,7 @@ function instance$1($$self, $$props, $$invalidate) {
 			for (const obj of arr) {
 				// create media element if it doesn't exist
 				if (!mediaElement) {
-					mediaElement = element((obj.type?.includes('audio')) ? 'audio' : 'video');
+					mediaElement = document.createElement((obj.type?.includes('audio')) ? 'audio' : 'video');
 
 					addAttributes(mediaElement, {
 						controls: true,
@@ -2299,25 +1788,27 @@ function instance$1($$self, $$props, $$invalidate) {
 						playsinline: true,
 						tabindex: '0'
 					});
+
+					addAttributes(mediaElement, activeItem.attr);
 				}
 
 				// add sources / tracks to media element
-				const el = element(tag);
+				const el = document.createElement(tag);
 
 				addAttributes(el, obj);
 
 				if (tag == 'source') {
-					listen(el, 'error', error => opts.onError?.(container, activeItem, error));
+					el.onError = error => opts.onError?.(container, activeItem, error);
 				}
 
-				append(mediaElement, el);
+				mediaElement.append(el);
 			}
 		};
 
 		appendToVideo('source', activeItem.sources);
 		appendToVideo('track', activeItem.tracks || []);
-		listen(mediaElement, 'canplay', () => $$invalidate(0, loaded = true));
-		append(node, mediaElement);
+		mediaElement.oncanplay = () => $$invalidate(0, loaded = true);
+		node.append(mediaElement);
 	};
 
 	
@@ -2332,7 +1823,7 @@ class Video extends SvelteComponent {
 	}
 }
 
-/* src/bigger-picture.svelte generated by Svelte v4.2.10 */
+/* src/bigger-picture.svelte generated by Svelte v3.55.1 */
 
 function create_if_block(ctx) {
 	let div2;
@@ -2461,10 +1952,7 @@ function create_if_block(ctx) {
 			current = false;
 		},
 		d(detaching) {
-			if (detaching) {
-				detach(div2);
-			}
-
+			if (detaching) detach(div2);
 			if (detaching && div0_outro) div0_outro.end();
 			key_block.d(detaching);
 			if (if_block) if_block.d();
@@ -2475,7 +1963,7 @@ function create_if_block(ctx) {
 	};
 }
 
-// (343:199) {:else}
+// (335:199) {:else}
 function create_else_block(ctx) {
 	let div;
 	let raw_value = (/*activeItem*/ ctx[6].html ?? /*activeItem*/ ctx[6].element.outerHTML) + "";
@@ -2494,14 +1982,12 @@ function create_else_block(ctx) {
 		i: noop,
 		o: noop,
 		d(detaching) {
-			if (detaching) {
-				detach(div);
-			}
+			if (detaching) detach(div);
 		}
 	};
 }
 
-// (343:165) 
+// (335:165) 
 function create_if_block_5(ctx) {
 	let iframe;
 	let current;
@@ -2534,7 +2020,7 @@ function create_if_block_5(ctx) {
 	};
 }
 
-// (343:104) 
+// (335:104) 
 function create_if_block_4(ctx) {
 	let video;
 	let current;
@@ -2567,7 +2053,7 @@ function create_if_block_4(ctx) {
 	};
 }
 
-// (343:4) {#if activeItem.img}
+// (335:4) {#if activeItem.img}
 function create_if_block_3(ctx) {
 	let imageitem;
 	let current;
@@ -2607,7 +2093,7 @@ function create_if_block_3(ctx) {
 	};
 }
 
-// (343:299) {#if activeItem.caption}
+// (335:299) {#if activeItem.caption}
 function create_if_block_2(ctx) {
 	let div;
 	let raw_value = /*activeItem*/ ctx[6].caption + "";
@@ -2636,16 +2122,13 @@ function create_if_block_2(ctx) {
 			current = false;
 		},
 		d(detaching) {
-			if (detaching) {
-				detach(div);
-			}
-
+			if (detaching) detach(div);
 			if (detaching && div_outro) div_outro.end();
 		}
 	};
 }
 
-// (332:43) {#key activeItem.i}
+// (324:43) {#key activeItem.i}
 function create_key_block(ctx) {
 	let div;
 	let current_block_type_index;
@@ -2749,7 +2232,6 @@ function create_key_block(ctx) {
 			transition_in(if_block0);
 
 			add_render_callback(() => {
-				if (!current) return;
 				if (div_outro) div_outro.end(1);
 				div_intro = create_in_transition(div, /*mediaTransition*/ ctx[12], true);
 				div_intro.start();
@@ -2766,21 +2248,18 @@ function create_key_block(ctx) {
 			current = false;
 		},
 		d(detaching) {
-			if (detaching) {
-				detach(div);
-				detach(if_block1_anchor);
-			}
-
+			if (detaching) detach(div);
 			if_blocks[current_block_type_index].d();
 			if (detaching && div_outro) div_outro.end();
 			if (if_block1) if_block1.d(detaching);
+			if (detaching) detach(if_block1_anchor);
 			mounted = false;
 			run_all(dispose);
 		}
 	};
 }
 
-// (368:41) {#if items.length > 1}
+// (360:41) {#if items.length > 1}
 function create_if_block_1(ctx) {
 	let div;
 	let raw_value = `${/*position*/ ctx[4] + 1} / ${/*items*/ ctx[0].length}` + "";
@@ -2820,12 +2299,9 @@ function create_if_block_1(ctx) {
 		p(ctx, dirty) {
 			if (dirty[0] & /*position, items*/ 17 && raw_value !== (raw_value = `${/*position*/ ctx[4] + 1} / ${/*items*/ ctx[0].length}` + "")) div.innerHTML = raw_value;		},
 		d(detaching) {
-			if (detaching) {
-				detach(div);
-				detach(button0);
-				detach(button1);
-			}
-
+			if (detaching) detach(div);
+			if (detaching) detach(button0);
+			if (detaching) detach(button1);
 			mounted = false;
 			run_all(dispose);
 		}
@@ -2881,11 +2357,8 @@ function create_fragment(ctx) {
 			current = false;
 		},
 		d(detaching) {
-			if (detaching) {
-				detach(if_block_anchor);
-			}
-
 			if (if_block) if_block.d(detaching);
+			if (detaching) detach(if_block_anchor);
 		}
 	};
 }
@@ -2943,7 +2416,6 @@ function instance($$self, $$props, $$invalidate) {
 	const open = options => {
 		$$invalidate(5, opts = options);
 		$$invalidate(8, inline = opts.inline);
-		const openItems = opts.items;
 
 		// add class to hide scroll if not inline gallery
 		if (!inline && html.scrollHeight > html.clientHeight) {
@@ -2966,27 +2438,26 @@ function instance($$self, $$props, $$invalidate) {
 		$$invalidate(7, smallScreen = container.w < 769);
 		$$invalidate(4, position = opts.position || 0);
 
-		// make array w/ dataset to work with
-		if (Array.isArray(openItems)) {
-			// array was passed
-			$$invalidate(0, items = openItems.map((item, i) => {
-				// override gallery position if needed
-				if (opts.el && opts.el === item.element) {
-					$$invalidate(4, position = i);
-				}
+		// set items
+		$$invalidate(0, items = []);
 
-				return { i, ...item };
-			}));
-		} else {
-			// nodelist / node was passed
-			$$invalidate(0, items = (openItems.length ? [...openItems] : [openItems]).map((element, i) => {
-				// override gallery position if needed
-				if (opts.el === element) {
-					$$invalidate(4, position = i);
-				}
+		for (let i = 0; i < (opts.items.length || 1); i++) {
+			let item = opts.items[i] || opts.items;
 
-				return { element, i, ...element.dataset };
-			}));
+			if ('dataset' in item) {
+				items.push({ element: item, i, ...item.dataset });
+			} else {
+				item.i = i;
+				items.push(item);
+
+				// set item to element for position check below
+				item = item.element;
+			}
+
+			// override gallery position if needed
+			if (opts.el && opts.el === item) {
+				$$invalidate(4, position = i);
+			}
 		}
 	};
 
@@ -3064,7 +2535,7 @@ function instance($$self, $$props, $$invalidate) {
 	/** loads / decodes image for item */
 	const loadImage = item => {
 		if (item.img) {
-			const image = element('img');
+			const image = document.createElement('img');
 			image.sizes = opts.sizes || `${calculateDimensions(item)[0]}px`;
 			image.srcset = item.img;
 			item.preload = true;
@@ -3139,13 +2610,12 @@ function instance($$self, $$props, $$invalidate) {
 	/** code to run on mount / destroy */
 	const containerActions = node => {
 		$$invalidate(20, container.el = node, container);
-		let removeKeydownListener;
 		let roActive;
 		opts.onOpen?.(container.el, activeItem);
 
 		// don't use keyboard events for inline galleries
 		if (!inline) {
-			removeKeydownListener = listen(globalThis, 'keydown', onKeydown);
+			globalThis.addEventListener('keydown', onKeydown);
 		}
 
 		// set up resize observer
@@ -3173,7 +2643,7 @@ function instance($$self, $$props, $$invalidate) {
 		return {
 			destroy() {
 				ro.disconnect();
-				removeKeydownListener?.();
+				globalThis.removeEventListener('keydown', onKeydown);
 				closing.set(false);
 
 				// remove class hiding scroll

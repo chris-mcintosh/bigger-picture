@@ -1,6 +1,9 @@
 [npm-image]: https://flat.badgen.net/npm/v/bigger-picture?color=blue
 [npm-url]: https://www.npmjs.com/package/bigger-picture
-[size-image]: https://flat.badgen.net/badgesize/gzip/henrygd/bigger-picture/master/dist/bigger-picture.min.mjs?color=green
+[size-image]: https://flat.badgen.net/static/gzip%20size/8.4%20KB/green
+
+<!-- [size-image]: https://flat.badgen.net/badgesize/gzip/henrygd/bigger-picture/master/dist/bigger-picture.min.mjs?color=green -->
+
 [license-image]: https://flat.badgen.net/github/license/henrygd/bigger-picture?color=purple
 [license-url]: /license
 
@@ -20,7 +23,7 @@ https://user-images.githubusercontent.com/8519632/165216178-bd9a0b03-6ee5-42fd-b
 - **Responsive images** - Pass in a srcset value and Bigger Picture will handle the rest.
 - **Video, audio, iframe, and html support** - No need for multiple libraries, plugins, or hacky workarounds.
 - **Inline galleries and custom layouts** - Bigger Picture can be mounted anywhere and has an easy-to-use API.
-- **Accessible** - Supports alt text, image / video captions, iframe titles, keyboard navigation, respects prefers-reduced-motion, and manages focus.
+- **Accessible** - Supports alt text, image / video captions, custom HTML attributes, keyboard navigation, respects prefers-reduced-motion, and manages focus.
 - **Free software** - MIT licensed. Do whatever you want with it, just don't be an asshole please.
 
 ## Install
@@ -266,6 +269,12 @@ URL or path to full image. Can be a `srcset` value.
 
 When using `srcset`, the `sizes` value will update automatically when an image is zoomed. You may override this behavior by setting the [`sizes`](#sizes) value.
 
+### iframe
+
+Type: `string`
+
+URL or path to iframe source
+
 ### sources
 
 Type: `Array` or `string`
@@ -294,17 +303,22 @@ onOpen(container) {
 },
 ```
 
+### attr
+
+Type: `object` or `string`
+
+Add or override default attributes on the `<img>`, `<iframe>`, `<video>`, or `<audio>` elements.
+
+<!-- prettier-ignore -->
+```html
+<div data-attr='{"credentialless": true, "referrerpolicy": "no-referrer"}'>
+```
+
 ### alt
 
 Type: `string`
 
 Image alternative text
-
-### iframe
-
-Type: `string`
-
-URL or path to iframe source
 
 ### title
 
@@ -351,20 +365,18 @@ Below is an example for passing English and Spanish captions. See the [MDN page 
 To control the default open / close animation, also add a property `element` to each item that contains a node on the page. The active item's `element` will be where the animation opens from / closes to. If you're not using the default scale animation, this is not needed.
 
 ```js
-let items = [
-  {
-    img: 'example.jpg',
-    thumb: 'example_thumb.jpg',
-    alt: 'Example',
-    height: 2500,
-    width: 1667,
-    // if you're using the default intro animation
-    element: node,
-  },
-]
-
 bp.open({
-  items,
+  items: [
+    {
+      img: 'example.jpg',
+      thumb: 'example_thumb.jpg',
+      alt: 'Example',
+      height: 2500,
+      width: 1667,
+      // if you're using the default intro animation
+      element: node,
+    },
+  ],
 })
 ```
 
