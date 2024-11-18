@@ -328,7 +328,7 @@
 		class:bp-small={smallScreen}
 		class:bp-noclose={opts.noClose}
 	>
-		<div out:fly|local={{ duration: 480 }} />
+		<div out:fly={{ duration: 480 }} />
 		{#key activeItem.i}
 			<div
 				class="bp-inner"
@@ -361,7 +361,7 @@
 			{/if}
 		{/key}
 
-		<div class="bp-controls" out:fly|local>
+		<div class="bp-controls" out:fly>
 			<!-- Close button -->
 			<button
 				class="bp-base bp-x"

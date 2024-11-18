@@ -335,45 +335,39 @@
     width: 34px;
     right: 6px;
   }
-
   .bp-x:before {
     top: 6px;
   }
-
   .bp-ext {
     top: 47px;
   }
   .bp-ext:before {
     top: 6px;
   }
-
   .bp-save {
     top: 94px;
   }
   .bp-save:before {
     top: 6px;
   }
-
   .bp-prev,
-.bp-next {
+  .bp-next {
     margin-top: -27px;
     height: 54px;
     width: 45px;
   }
   .bp-prev:before,
-.bp-next:before {
+  .bp-next:before {
     top: 7px;
     left: 2px;
     width: 43px;
   }
-
   .bp-o,
-.bp-o:after {
+  .bp-o:after {
     border-width: 6px;
     width: 60px;
     height: 60px;
   }
-
   .bp-count {
     margin: 12px 10px;
   }

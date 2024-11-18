@@ -34,7 +34,7 @@
 
 	{#if isClosing}
 		<img
-			in:fade
+			in:fade|global
 			src="https://assets.henrygd.me/bp/images/firewatch-2.png"
 			decoding="async"
 			alt=""

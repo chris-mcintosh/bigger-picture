@@ -9,7 +9,7 @@
 {#if !loaded}
 	<div
 		class="bp-load"
-		out:fly|local={{ duration: 480 }}
+		out:fly={{ duration: 480 }}
 		style:background-image={getThumbBackground(activeItem)}
 	>
 		<span class="bp-bar" />

@@ -359,7 +359,7 @@
 
 <div
 	class="bp-img-wrap"
-	on:wheel={onWheel}
+	on:wheel|passive={onWheel}
 	on:pointerdown={onPointerDown}
 	on:pointermove={onPointerMove}
 	on:pointerup={onPointerUp}

@@ -18,6 +18,7 @@ let { body } = document
 
 let bodyBp = BiggerPicture({ target: document.body })
 
+// @ts-ignore
 let bpThumbnails = new BiggerPictureThumbnails({
 	target: body,
 })
@@ -173,6 +174,7 @@ function openCode(e, node) {
 		el: node,
 		items: [
 			{
+				// @ts-ignore
 				html: document.getElementById(node.dataset.html).outerHTML,
 				element: node,
 			},
@@ -194,6 +196,7 @@ function createObserver() {
 			initInlineGallery()
 		}
 	}, options)
+	// @ts-ignore
 	observer.observe(inlineWrap)
 }
 
@@ -220,6 +223,7 @@ for (let link of htmlLinks) {
 }
 
 // firewatch click
+// @ts-ignore
 firewatch.addEventListener('click', (e) => {
 	e.preventDefault()
 	let component
@@ -237,6 +241,7 @@ firewatch.addEventListener('click', (e) => {
 })
 
 // dialog modal example
+// @ts-ignore
 document.getElementById('dialog').addEventListener('click', (e) => {
 	e.preventDefault()
 	bodyBp.open({
@@ -254,6 +259,7 @@ document.getElementById('dialog').addEventListener('click', (e) => {
 })
 
 // tweet
+// @ts-ignore
 document.getElementById('tweet').addEventListener('click', (e) => {
 	e.preventDefault()
 	let tweets = [

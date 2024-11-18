@@ -135,11 +135,11 @@
 		<div class="thumbnail-bp" use:onMount />
 		<div
 			class="thumbnails"
-			in:fade={{
+			in:fade|global={{
 				easing: cubicOut,
 				duration: prefersReducedMotion ? 0 : 480,
 			}}
-			out:fade={{
+			out:fade|global={{
 				easing: cubicOut,
 				duration: prefersReducedMotion ? 0 : 480,
 			}}
