@@ -1,6 +1,6 @@
-<svelte:options accessors={true} immutable={true} />
-
 <script lang="ts">
+	import { run } from 'svelte/legacy'
+
 	import { fly } from 'svelte/transition'
 	import { cubicOut } from 'svelte/easing'
 	import ImageItem from './components/image.svelte'
@@ -9,70 +9,77 @@
 	import { writable } from 'svelte/store'
 	import { closing } from './stores'
 
-	/** items currently displayed in gallery */
-	export let items: any[] | undefined | null = undefined
+	interface Props {
+		/** items currently displayed in gallery */
+		items?: any[] | undefined | null
+		/** element the gallery is mounted within (passed during initialization)*/
+		target?: any | undefined
+	}
 
-	/** element the gallery is mounted within (passed during initialization)*/
-	export let target: any | undefined = undefined
+	let { items = $bindable(undefined), target = undefined }: Props = $props()
 
 	const html = document.documentElement
 
 	/** index of current active item */
-	let position: number
+	let position: number = $state(0)
 
 	/** options passed via open method */
-	let opts: {
-		onUpdate?: Function
-		inline?: any
-		position?: any
-		items?: any
-		el?: any
-		onClose?: Function
-		noClose?: Function
-		sizes?: any
-		intro?: any
-		onOpen?: Function
-		onResize?: Function
-		onClosed?: Function
-		focusWrap?: any
-		scale?: number
-	}
+	let opts:
+		| {
+				onUpdate?: Function
+				inline?: any
+				position?: any
+				items?: any
+				el?: any
+				onClose?: Function
+				noClose?: Function
+				sizes?: any
+				intro?: any
+				onOpen?: Function
+				onResize?: Function
+				onClosed?: Function
+				focusWrap?: any
+				scale?: number
+		  }
+		| undefined = $state()
 
 	/** bool tracks open state */
-	let isOpen: boolean
+	let isOpen: boolean = $state(false)
 
 	/** dom element to restore focus to on close */
 	let focusTrigger: Element | null | any
 
 	/** bool true if container width < 769 */
-	let smallScreen: boolean
+	let smallScreen: boolean = $state(false)
 
 	/** bool value of inline option passed in open method */
-	let inline: any
+	let inline: any = $state()
 
 	/** when position is set */
 	let movement: number
 
 	/** stores target on pointerdown (ref for overlay close) */
-	let clickedEl: EventTarget | null
+	let clickedEl: EventTarget | null = $state(null)
 
 	/** active item object */
-	let activeItem: {
-		[x: string]: any
-		img?: any
-		sources?: any
-		iframe?: any
-		element?: any
-		i?: any
-		html?: any
-		caption?: any
-		width?: number
-		height?: number
-	}
+	let activeItem:
+		| {
+				[x: string]: any
+				img?: any
+				sources?: any
+				iframe?: any
+				element?: any
+				i?: any
+				html?: any
+				caption?: any
+				width?: number
+				height?: number
+		  }
+		| undefined = $state()
 
 	/** returns true if `activeItem` is html */
 	const activeItemIsHtml = () =>
-		!activeItem.img && !activeItem.sources && !activeItem.iframe
+		!activeItem?.img && !activeItem?.sources && !activeItem?.iframe
 
 	/** function set by child component to run when container resized */
 	let resizeFunc: () => void
@@ -80,24 +87,26 @@
 	const setResizeFunc = (fn: any) => (resizeFunc = fn)
 
 	/** container element (el) / width (w) / height (h) */
-	const container: any = {}
+	const container: any = $state({})
 
 	// /** true if image is currently zoomed past starting size */
 	const zoomed = writable(0)
 
-	$: if (items) {
-		// update active item when position changes
-		activeItem = items[position]
-		if (isOpen) {
-			// run onUpdate when items updated
-			opts.onUpdate?.(container.el, activeItem)
+	run(() => {
+		if (items) {
+			// update active item when position changes
+			activeItem = items[position]
+			if (isOpen) {
+				// run onUpdate when items updated
+				opts?.onUpdate?.(container.el, activeItem)
+			}
 		}
-	}
+	})
 
 	/** receives options and opens gallery */
 	export const open = (options: any) => {
 		opts = options
-		inline = opts.inline
+		inline = opts?.inline
 		// add class to hide scroll if not inline gallery
 		if (!inline && html.scrollHeight > html.clientHeight) {
 			html.classList.add('bp-lock')
@@ -108,11 +117,11 @@
 		container.h =
 			target === document.body ? window.innerHeight : target.clientHeight
 		smallScreen = container.w < 769
-		position = opts.position || 0
+		position = opts?.position || 0
 		// set items
 		items = []
-		for (let i = 0; i < (opts.items.length || 1); i++) {
-			let item = opts.items[i] || opts.items
+		for (let i = 0; i < (opts?.items.length || 1); i++) {
+			let item = opts?.items[i] || opts?.items
 			if ('dataset' in item) {
 				items.push({ element: item, i, ...item.dataset })
 			} else {
@@ -122,7 +131,7 @@
 				item = item.element
 			}
 			// override gallery position if needed
-			if (opts.el && opts.el === item) {
+			if (opts?.el && opts?.el === item) {
 				position = i
 			}
 		}
@@ -130,7 +139,7 @@
 
 	/** closes gallery */
 	export const close = () => {
-		opts.onClose?.(container.el, activeItem)
+		opts?.onClose?.(container.el, activeItem)
 		closing.set(true)
 		items = null
 		// restore focus to trigger element
@@ -168,7 +177,7 @@
 	}) => {
 		const { key, shiftKey } = e
 		if (key === 'Escape') {
-			!opts.noClose && close()
+			!opts?.noClose && close()
 		} else if (key === 'ArrowRight') {
 			next()
 		} else if (key === 'ArrowLeft') {
@@ -180,6 +189,7 @@
 			//@ts-ignore
 			if (shiftKey || !(activeElement && activeElement.controls)) {
 				e.preventDefault()
+				//@ts-ignore
 				const { focusWrap = container.el } = opts
 				const tabbable = [...focusWrap.querySelectorAll('*')].filter(
 					(node) => node.tabIndex >= 0
@@ -199,6 +209,7 @@
 	//@ts-ignore
 	const calculateDimensions = ({ width, height }) => {
 		//chris may need to default 1920 x 1080
+		//@ts-ignore
 		const { scale = 0.99 } = opts
 		const ratio = Math.min(
 			1,
@@ -229,7 +240,7 @@
 		if (item.img) {
 			const image = document.createElement('img')
 			//@ts-ignore
-			image.sizes = opts.sizes || `${calculateDimensions(item)[0]}px`
+			image.sizes = opts?.sizes || `${calculateDimensions(item)[0]}px`
 			image.srcset = item.img
 			item.preload = true
 			return image.decode().catch((error) => {})
@@ -241,7 +252,7 @@
 		if (!isOpen || !items) {
 			// entrance / exit transition
 			isOpen = isEntering
-			return opts.intro
+			return opts?.intro
 				? fly(node, { y: isEntering ? 10 : -10 })
 				: scaleIn(node)
 		}
@@ -266,7 +277,7 @@
 		}
 
 		// rect is bounding rect of trigger element
-		const rect = (activeItem.element || focusTrigger).getBoundingClientRect()
+		const rect = (activeItem?.element || focusTrigger).getBoundingClientRect()
 		const leftOffset = rect.left - (container.w - rect.width) / 2
 		const centerTop = rect.top - (container.h - rect.height) / 2
 		const scaleWidth = rect.width / dimensions[0]
@@ -304,7 +315,7 @@
 	const containerActions = (node: Element) => {
 		container.el = node
 		let roActive: boolean
-		opts.onOpen?.(container.el, activeItem)
+		opts?.onOpen?.(container.el, activeItem)
 		// don't use keyboard events for inline galleries
 		if (!inline) {
 			window.addEventListener('keydown', onKeydown)
@@ -321,7 +332,7 @@
 					resizeFunc?.()
 				}
 				// run user defined onResize function
-				opts.onResize?.(container.el, activeItem)
+				opts?.onResize?.(container.el, activeItem)
 			}
 			roActive = true
 		})
@@ -333,7 +344,7 @@
 				closing.set(false)
 				// remove class hiding scroll
 				html.classList.remove('bp-lock')
-				opts.onClosed?.()
+				opts?.onClosed?.()
 			},
 		}
 	}
@@ -362,6 +373,8 @@
 			})
 			.catch((e) => console.error(e))
 	}
+
+	export { items, target }
 </script>
 
 {#if items}
@@ -371,36 +384,36 @@
 		class:bp-zoomed={$zoomed}
 		class:bp-inline={inline}
 		class:bp-small={smallScreen}
-		class:bp-noclose={opts.noClose}
+		class:bp-noclose={opts?.noClose}
 	>
-		<div out:fly={{ duration: 480 }} />
-		{#key activeItem.i}
+		<div out:fly={{ duration: 480 }}></div>
+		{#key activeItem?.i}
 			<div
 				class="bp-inner"
 				in:mediaTransition|global={true}
 				out:mediaTransition|global={false}
-				on:pointerdown={(e) => (clickedEl = e.target)}
-				on:pointerup={function (e) {
+				onpointerdown={(e) => (clickedEl = e.target)}
+				onpointerup={function (e) {
 					// only close if left click on self and not dragged
 					//@ts-ignore
 					if (e.button !== 2 && e.target === this && clickedEl === this) {
-						!opts.noClose && close()
+						!opts?.noClose && close()
 					}
 				}}
 			>
-				{#if activeItem.img}
+				{#if activeItem?.img}
 					<ImageItem allProps={getChildProps()} {smallScreen} />
-				{:else if activeItem.sources}
+				{:else if activeItem?.sources}
 					<Video allProps={getChildProps()} />
-				{:else if activeItem.iframe}
+				{:else if activeItem?.iframe}
 					<Iframe allProps={getChildProps()} />
 				{:else}
 					<div class="bp-html">
-						{@html activeItem.html ?? activeItem.element.outerHTML}
+						{@html activeItem?.html ?? activeItem?.element.outerHTML}
 					</div>
 				{/if}
 			</div>
-			{#if activeItem.caption}
+			{#if activeItem?.caption}
 				<div class="bp-cap" out:fly|global={{ duration: 200 }}>
 					{@html activeItem.caption}
 				</div>
@@ -413,34 +426,34 @@
 				class="bp-base bp-x"
 				title="Close"
 				aria-label="Close"
-				on:click={close}
-			/>
+				onclick={close}
+			></button>
 			<!-- External button -->
 			<button
 				class="bp-base bp-ext"
 				title="Open Fullsize"
 				aria-label="Open Fullsize"
-				on:click={() => {
+				onclick={() => {
 					//@ts-ignore
 					const url = Object.hasOwn(activeItem, 'full')
-						? activeItem['full']
-						: activeItem['img']
+						? activeItem?.['full']
+						: activeItem?.['img']
 					window.open(url, '_blank')
 				}}
-			/>
+			></button>
 			<!-- Save button -->
 			<button
 				class="bp-base bp-save"
 				title="Save"
 				aria-label="Save"
-				on:click={() => {
+				onclick={() => {
 					//@ts-ignore
 					const url = Object.hasOwn(activeItem, 'full')
-						? activeItem['full']
-						: activeItem['img']
+						? activeItem?.['full']
+						: activeItem?.['img']
 					downloadPhoto(url, url.replace(/.*\//, ''))
 				}}
-			/>
+			></button>
 			<!-- Save All -->
 			<!-- Share All  -->
 
@@ -454,14 +467,10 @@
 					class="bp-prev"
 					title="Previous"
 					aria-label="Previous"
-					on:click={prev}
-				/>
-				<button
-					class="bp-next"
-					title="Next"
-					aria-label="Next"
-					on:click={next}
-				/>
+					onclick={prev}
+				></button>
+				<button class="bp-next" title="Next" aria-label="Next" onclick={next}
+				></button>
 			{/if}
 		</div>
 	</div>

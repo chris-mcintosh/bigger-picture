@@ -3,10 +3,10 @@
 	//@ts-ignore
 	import Loading from './loading.svelte'
 
-	export let allProps
+	let { allProps } = $props()
 
-	let loaded: boolean
-	let dimensions: any[]
+	let loaded: boolean = $state(false)
+	let dimensions: any[] = $state([])
 
 	const { activeItem } = allProps
 
@@ -34,7 +34,7 @@
 		use:addSrc
 		allow="autoplay; fullscreen"
 		title={activeItem.title}
-		on:load={() => (loaded = true)}
-	/>
+		onload={() => (loaded = true)}
+	></iframe>
 	<Loading {activeItem} {loaded} />
 </div>

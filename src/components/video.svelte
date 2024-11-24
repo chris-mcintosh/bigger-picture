@@ -8,10 +8,10 @@
 	import Loading from './loading.svelte'
 	import { addAttributes, getThumbBackground } from '../stores'
 
-	export let allProps
+	let { allProps } = $props()
 
-	let loaded: boolean
-	let dimensions: any[]
+	let loaded: boolean = $state(false)
+	let dimensions: any[] = $state([])
 
 	const { activeItem, opts, container } = allProps
 

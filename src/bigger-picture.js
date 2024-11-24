@@ -1,4 +1,5 @@
 import BiggerPicture from './bigger-picture.svelte'
+import { mount } from "svelte";
 
 /**
  * Initializes BiggerPicture
@@ -6,8 +7,8 @@ import BiggerPicture from './bigger-picture.svelte'
  * @returns BiggerPicture instance
  */
 export default function (options) {
-	return new BiggerPicture({
-		...options,
-		props: options,
-	})
+	return mount(BiggerPicture, {
+    		...options,
+    		props: options,
+    	})
 }

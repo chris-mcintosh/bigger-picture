@@ -7,8 +7,10 @@ import Firewatch from './components/firewatch.svelte'
 import Dialog from './components/dialog.svelte'
 // @ts-ignore
 import BiggerPictureThumbnails from './bp-thumbnails.svelte'
-import { listen, self } from 'svelte/internal'
+// @ts-ignore
+//chrisimport { listen, self } from 'svelte/internal'
 import FlexMasonry from 'flexmasonry/src/flexmasonry.js'
+import { mount } from 'svelte'
 
 // import hideShowScroll from 'hide-show-scroll'
 // import Prism from 'prismjs'
@@ -19,7 +21,7 @@ let { body } = document
 let bodyBp = BiggerPicture({ target: document.body })
 
 // @ts-ignore
-let bpThumbnails = new BiggerPictureThumbnails({
+let bpThumbnails = mount(BiggerPictureThumbnails, {
 	target: body,
 })
 
@@ -89,13 +91,13 @@ function openBiggerPictureVids(e) {
 				container.classList.add('bp-audio')
 				// play / pause on audio image click
 				const audio = container.querySelector('audio')
-				listen(
+				/*chrislisten(
 					audio.parentNode,
 					'click',
 					self(() => {
 						audio[audio.paused ? 'play' : 'pause']()
 					})
-				)
+				)*/
 			}
 		},
 		onClosed: () => currentTarget.classList.remove('hide-icon'),
@@ -233,7 +235,7 @@ firewatch.addEventListener('click', (e) => {
 		},
 		items: [{ element: e.currentTarget, html: '' }],
 		onOpen: (container) => {
-			component = new Firewatch({
+			component = mount(Firewatch, {
 				target: container.querySelector('.bp-html'),
 			})
 		},
@@ -250,7 +252,7 @@ document.getElementById('dialog').addEventListener('click', (e) => {
 		onOpen: (container) => {
 			container.querySelector('.bp-controls').remove()
 			container.classList.add('blur')
-			new Dialog({
+			mount(Dialog, {
 				target: container.querySelector('.bp-html'),
 				props: { bp: bodyBp },
 			})

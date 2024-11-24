@@ -1,22 +1,26 @@
 <script>
+	import { run } from 'svelte/legacy'
+
 	import BiggerPicture from '../bigger-picture.js'
 	import { tweened } from 'svelte/motion'
 	import { fade } from 'svelte/transition'
 	import { cubicOut } from 'svelte/easing'
 	import { resize } from './actions'
 
-	let opts
+	let opts = $state()
 
-	let bp
-	let bpItems = []
-	let position
+	let bp = $state()
+	let bpItems = $state([])
+	let position = $state()
 
-	let thumbsWidth
-	let containerWidth
+	let thumbsWidth = $state()
+	let containerWidth = $state()
 	let initialTranslate = 0
-	let isPointerDown, pointerDownPos, hasDragged
+	let isPointerDown,
+		pointerDownPos,
+		hasDragged = $state()
 	let dragPositions = []
-	let focusWrap
+	let focusWrap = $state()
 	let closing
 
 	const prefersReducedMotion = globalThis.matchMedia?.(
@@ -27,11 +31,6 @@
 		easing: cubicOut,
 		duration: prefersReducedMotion ? 0 : 250,
 	})
-
-	$: if (position !== undefined) {
-		// make sure button is in view when position updates
-		setTimeout(scrollToButton, 0)
-	}
 
 	export const open = (options) => {
 		opts = closing ? null : options
@@ -117,22 +116,28 @@
 			onClosed: () => (closing = false),
 		})
 	}
+	run(() => {
+		if (position !== undefined) {
+			// make sure button is in view when position updates
+			setTimeout(scrollToButton, 0)
+		}
+	})
 </script>
 
 {#if opts}
 	<div
 		class="thumbnail-wrap"
 		bind:this={focusWrap}
-		on:pointermove={pointerMove}
-		on:pointerup={pointerUp}
-		on:pointercancel={pointerUp}
+		onpointermove={pointerMove}
+		onpointerup={pointerUp}
+		onpointercancel={pointerUp}
 		use:resize
-		on:bp:resize={({ detail }) => {
+		onbpresize={({ detail }) => {
 			containerWidth = detail.cr.width
 			$translate = 0
 		}}
 	>
-		<div class="thumbnail-bp" use:onMount />
+		<div class="thumbnail-bp" use:onMount></div>
 		<div
 			class="thumbnails"
 			in:fade|global={{
@@ -146,9 +151,9 @@
 		>
 			<div
 				style="transform: translatex({$translate}px)"
-				on:pointerdown={pointerDown}
+				onpointerdown={pointerDown}
 				use:resize
-				on:bp:resize={({ detail }) => {
+				onbpresize={({ detail }) => {
 					thumbsWidth = detail.cr.width
 				}}
 			>
@@ -159,10 +164,10 @@
 							aria-label={element.alt}
 							style="background-image:url({element.thumb})"
 							class:active={element.i === position}
-							on:focus={(e) => scrollToButton(e.target)}
-							on:pointerup={() => !hasDragged && bp.setPosition(element.i)}
-							on:keyup={(e) => e.key === 'Enter' && bp.setPosition(element.i)}
-						/>
+							onfocus={(e) => scrollToButton(e.target)}
+							onpointerup={() => !hasDragged && bp.setPosition(element.i)}
+							onkeyup={(e) => e.key === 'Enter' && bp.setPosition(element.i)}
+						></button>
 					{/each}
 				</div>
 			</div>

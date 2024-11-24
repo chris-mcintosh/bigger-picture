@@ -1,15 +1,4 @@
-import svelte from 'rollup-plugin-svelte'
-import resolve from '@rollup/plugin-node-resolve'
-import commonjs from '@rollup/plugin-commonjs'
-import terser from '@rollup/plugin-terser'
-import size from 'rollup-plugin-size'
-import modify from 'rollup-plugin-modify'
-import typescript from '@rollup/plugin-typescript'
-import path from 'path'
-import sveltePreprocess from 'svelte-preprocess'
-
 const production = !process.env.ROLLUP_WATCH
-
 const terserOptions = {
 	ecma: 2015,
 	mangle: {
@@ -50,7 +39,7 @@ const cleanSvelteWhitespace = {
 		return { code }
 	},
 }
-const findReplaceOptions = [
+/*const findReplaceOptions = [
 	[/^\s*validate_store.+$|throw.+interpolate.+$/gm, ''],
 	['if (options.hydrate)', 'if (false)'],
 	['if (options.intro)', 'if (false)'],
@@ -67,10 +56,32 @@ const findReplaceOptions = [
 	['window', 'globalThis'],
 	['const doc = get_root_for_style(node)', 'const doc = document'],
 	[/get_root_for_style\(node\),/g, 'document,'],
-].map(([find, replace]) => modify({ find, replace }))
+].map(([find, replace]) => modify({ find, replace }))*/
 
-let config = [
-	{
+export default async function () {
+	const [
+		svelte,
+		sveltePreprocess,
+		typescript,
+		size,
+		resolve,
+		commonjs,
+		terser,
+		modify,
+		path,
+	] = await Promise.all([
+		import('rollup-plugin-svelte').then((m) => m.default),
+		import('svelte-preprocess').then((m) => m.default),
+		import('@rollup/plugin-typescript').then((m) => m.default),
+		import('rollup-plugin-size').then((m) => m.default),
+		import('@rollup/plugin-node-resolve').then((m) => m.default),
+		import('@rollup/plugin-commonjs').then((m) => m.default),
+		import('@rollup/plugin-terser').then((m) => m.default),
+		import('rollup-plugin-modify').then((m) => m.default),
+		import('path').then((m) => m.default),
+	])
+
+	return {
 		input: 'src/demo/demo.js',
 		output: {
 			name: 'app',
@@ -98,99 +109,8 @@ let config = [
 				tsconfig: path.resolve(__dirname, 'tsconfig.json'), // Optional: reference tsconfig if needed
 			}),
 			resolve({ browser: true }),
-			...findReplaceOptions,
+			/*...findReplaceOptions,*/
 			production && terser(terserOptions),
 		],
-	},
-]
-
-if (production) {
-	// remove unneeded setters in library
-	findReplaceOptions.push(
-		modify({ find: /^\sset .+{$\n\s+this.+[^}]+}/gm, replace: '' })
-	)
-	// unminified dist files
-	config.push({
-		input: 'src/bigger-picture.js',
-		output: [
-			{
-				format: 'es',
-				file: 'dist/bigger-picture.mjs',
-			},
-			{
-				format: 'umd',
-				name: 'BiggerPicture',
-				file: 'dist/bigger-picture.umd.js',
-				strict: false,
-			},
-			{
-				format: 'cjs',
-				name: 'BiggerPicture',
-				file: 'dist/bigger-picture.cjs',
-				strict: false,
-				exports: 'default',
-			},
-		],
-		plugins: [
-			commonjs(),
-			svelte({
-				preprocess: [
-					sveltePreprocess({
-						typescript: true, // Enable TypeScript in .svelte files
-					}),
-					cleanSvelteWhitespace,
-				],
-				compilerOptions: {
-					immutable: true,
-					css: false,
-				},
-			}),
-			typescript({
-				tsconfig: path.resolve(__dirname, 'tsconfig.json'), // Optional: reference tsconfig if needed
-			}),
-			resolve({ browser: true }),
-			...findReplaceOptions,
-		],
-	})
-	// minified dist files
-	config.push({
-		input: 'src/bigger-picture.js',
-		output: [
-			{
-				name: 'app',
-				format: 'iife',
-				name: 'BiggerPicture',
-				file: 'dist/bigger-picture.min.js',
-				strict: false,
-			},
-			{
-				format: 'es',
-				file: 'dist/bigger-picture.min.mjs',
-			},
-		],
-		plugins: [
-			commonjs(),
-			svelte({
-				preprocess: [
-					sveltePreprocess({
-						typescript: true, // Enable TypeScript in .svelte files
-					}),
-					cleanSvelteWhitespace,
-				],
-				compilerOptions: {
-					immutable: true,
-					css: false,
-				},
-			}),
-			typescript({
-				tsconfig: path.resolve(__dirname, 'tsconfig.json'), // Optional: reference tsconfig if needed
-			}),
-			resolve({ browser: true }),
-			...findReplaceOptions,
-			terser(terserOptions),
-			size(),
-		],
-	})
+	}
 }
-
-export default config

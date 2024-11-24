@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { run, passive } from 'svelte/legacy'
+
 	import { tweened } from 'svelte/motion'
 	import {
 		addAttributes,
@@ -10,22 +12,23 @@
 	//@ts-ignore
 	import Loading from './loading.svelte'
 
-	export let allProps: any
-
+	interface Props {
+		allProps: any
+		smallScreen: boolean
+	}
+	let { allProps, smallScreen }: Props = $props()
 	let { activeItem, opts, prev, next, zoomed, container } = allProps
-
-	export let smallScreen: boolean
 
 	let maxZoom = activeItem?.maxZoom || opts?.maxZoom || 10
 
-	let calculatedDimensions = allProps.calculateDimensions(activeItem)
+	let calculatedDimensions = $state(allProps.calculateDimensions(activeItem))
 
 	/** value of sizes attribute */
-	let sizes = calculatedDimensions[0]
+	let sizes = $state(calculatedDimensions[0])
 
 	/** tracks load state of image */
-	let loaded: boolean
-	let showLoader: boolean
+	let loaded: boolean = $state(false)
+	let showLoader: boolean = $state(false)
 
 	/** stores pinch info if multiple touch events active */
 	let pinchDetails: { clientX: number; clientY: number } | null
@@ -36,7 +39,7 @@
 	/** track distance for pinch events */
 	let prevDiff = 0
 
-	let pointerDown: boolean
+	let pointerDown: boolean = $state(false)
 	let hasDragged: boolean
 	let dragStartX: number
 	let dragStartY: number
@@ -46,7 +49,7 @@
 	let dragStartTranslateY: number
 
 	/** if true, adds class to .bp-wrap to avoid image cropping */
-	let closingWhileZoomed: boolean
+	let closingWhileZoomed: boolean = $state(false)
 
 	const naturalWidth = +activeItem?.width
 
@@ -64,16 +67,20 @@
 	/** translate transform for pointerDown */
 	const zoomDragTranslate = tweened([0, 0], defaultTweenOptions(400))
 
-	$: zoomed.set($imageDimensions[0] - 10 > calculatedDimensions[0])
+	run(() => {
+		zoomed.set($imageDimensions[0] - 10 > calculatedDimensions[0])
+	})
 
 	// if zoomed while closing, zoom out image and add class
 	// to change contain value on .bp-wrap to avoid cropping
-	$: if ($closing && $zoomed && !opts.intro) {
-		const closeTweenOpts = defaultTweenOptions(480)
-		zoomDragTranslate.set([0, 0], closeTweenOpts)
-		imageDimensions.set(calculatedDimensions, closeTweenOpts)
-		closingWhileZoomed = true
-	}
+	run(() => {
+		if ($closing && $zoomed && !opts.intro) {
+			const closeTweenOpts = defaultTweenOptions(480)
+			zoomDragTranslate.set([0, 0], closeTweenOpts)
+			imageDimensions.set(calculatedDimensions, closeTweenOpts)
+			closingWhileZoomed = true
+		}
+	})
 
 	/** calculate translate position with bounds */
 	const boundTranslateValues = (
@@ -186,7 +193,7 @@
 		set: (bool) => changeZoom(bool ? maxZoom : -maxZoom),
 	})
 
-	const onWheel = (e: { preventDefault: () => void; deltaY: number }) => {
+	const onWheel = (e: any) => {
 		// return if scrolling past inline gallery w/ wheel
 		if (opts.inline && !$zoomed) {
 			return
@@ -376,11 +383,11 @@
 
 <div
 	class="bp-img-wrap"
-	on:wheel|passive={onWheel}
-	on:pointerdown={onPointerDown}
-	on:pointermove={onPointerMove}
-	on:pointerup={onPointerUp}
-	on:pointercancel={removeEventFromCache}
+	use:passive={['wheel', () => onWheel]}
+	onpointerdown={onPointerDown}
+	onpointermove={onPointerMove}
+	onpointerup={onPointerUp}
+	onpointercancel={removeEventFromCache}
 	class:bp-close={closingWhileZoomed}
 >
 	<div
@@ -402,7 +409,7 @@
 				use:addSrc
 				sizes={opts.sizes || `${sizes}px`}
 				alt={activeItem.alt}
-				on:error={(error) => opts.onError?.(container, activeItem, error)}
+				onerror={(error) => opts.onError?.(container, activeItem, error)}
 				out:fly|global
 			/>
 		{/if}

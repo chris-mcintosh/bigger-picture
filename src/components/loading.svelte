@@ -1,9 +1,8 @@
-<script>
+<script lang="ts">
 	import { fly } from 'svelte/transition'
 	import { closing, getThumbBackground } from '../stores'
 
-	export let activeItem
-	export let loaded
+	let { activeItem, loaded } = $props();
 </script>
 
 {#if !loaded}
@@ -12,8 +11,8 @@
 		out:fly={{ duration: 480 }}
 		style:background-image={getThumbBackground(activeItem)}
 	>
-		<span class="bp-bar" />
-		<span class="bp-o" />
+		<span class="bp-bar"></span>
+		<span class="bp-o"></span>
 	</div>
 {/if}
 
@@ -22,5 +21,5 @@
 		class="bp-load"
 		in:fly|global={{ duration: 480 }}
 		style:background-image={getThumbBackground(activeItem)}
-	/>
+	></div>
 {/if}
