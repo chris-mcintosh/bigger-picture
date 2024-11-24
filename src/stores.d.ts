@@ -5,7 +5,7 @@
  * })
  * ```
  */
-export const closing: import('svelte/store').Writable<number>
+export const closing: import('svelte/store').Writable<boolean>
 /** If user prefers reduced motion  */
 export const prefersReducedMotion: boolean
 export function defaultTweenOptions(duration: number): {

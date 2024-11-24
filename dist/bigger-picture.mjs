@@ -2415,8 +2415,8 @@ function create_if_block(ctx) {
 			if (!mounted) {
 				dispose = [
 					listen(button0, "click", /*close*/ ctx[1]),
-					listen(button1, "click", /*click_handler*/ ctx[23]),
-					listen(button2, "click", /*click_handler_1*/ ctx[24]),
+					listen(button1, "click", /*click_handler*/ ctx[24]),
+					listen(button2, "click", /*click_handler_1*/ ctx[25]),
 					action_destroyer(/*containerActions*/ ctx[14].call(null, div2))
 				];
 
@@ -2500,7 +2500,7 @@ function create_if_block(ctx) {
 	};
 }
 
-// (335:208) {:else}
+// (314:208) {:else}
 function create_else_block(ctx) {
 	let div;
 	let raw_value = (/*activeItem*/ ctx[6].html ?? /*activeItem*/ ctx[6].element.outerHTML) + "";
@@ -2526,7 +2526,7 @@ function create_else_block(ctx) {
 	};
 }
 
-// (335:171) 
+// (314:171) 
 function create_if_block_5(ctx) {
 	let iframe;
 	let current;
@@ -2559,7 +2559,7 @@ function create_if_block_5(ctx) {
 	};
 }
 
-// (335:107) 
+// (314:107) 
 function create_if_block_4(ctx) {
 	let video;
 	let current;
@@ -2592,7 +2592,7 @@ function create_if_block_4(ctx) {
 	};
 }
 
-// (335:4) {#if activeItem.img}
+// (314:4) {#if activeItem.img}
 function create_if_block_3(ctx) {
 	let imageitem;
 	let current;
@@ -2632,7 +2632,7 @@ function create_if_block_3(ctx) {
 	};
 }
 
-// (335:308) {#if activeItem.caption}
+// (314:308) {#if activeItem.caption}
 function create_if_block_2(ctx) {
 	let div;
 	let raw_value = /*activeItem*/ ctx[6].caption + "";
@@ -2670,7 +2670,7 @@ function create_if_block_2(ctx) {
 	};
 }
 
-// (324:37) {#key activeItem.i}
+// (302:37) {#key activeItem.i}
 function create_key_block(ctx) {
 	let div;
 	let current_block_type_index;
@@ -2712,8 +2712,8 @@ function create_key_block(ctx) {
 
 			if (!mounted) {
 				dispose = [
-					listen(div, "pointerdown", /*pointerdown_handler*/ ctx[21]),
-					listen(div, "pointerup", /*pointerup_handler*/ ctx[22])
+					listen(div, "pointerdown", /*pointerdown_handler*/ ctx[22]),
+					listen(div, "pointerup", /*pointerup_handler*/ ctx[23])
 				];
 
 				mounted = true;
@@ -2805,7 +2805,7 @@ function create_key_block(ctx) {
 	};
 }
 
-// (360:41) {#if items.length > 1}
+// (341:41) {#if items.length > 1}
 function create_if_block_1(ctx) {
 	let div;
 	let raw_value = `${/*position*/ ctx[4] + 1} / ${/*items*/ ctx[0].length}` + "";
@@ -2917,6 +2917,7 @@ function create_fragment(ctx) {
 
 function instance($$self, $$props, $$invalidate) {
 	let $zoomed;
+	var _a;
 	let { items = undefined } = $$props;
 	let { target = undefined } = $$props;
 	const html = document.documentElement;
@@ -2977,10 +2978,10 @@ function instance($$self, $$props, $$invalidate) {
 		// update trigger element to restore focus
 		focusTrigger = document.activeElement;
 
-		$$invalidate(20, container.w = target.offsetWidth, container);
+		$$invalidate(21, container.w = target.offsetWidth, container);
 
 		$$invalidate(
-			20,
+			21,
 			container.h = target === document.body
 			? globalThis.innerHeight
 			: target.clientHeight,
@@ -2997,7 +2998,7 @@ function instance($$self, $$props, $$invalidate) {
 			let item = opts.items[i] || opts.items;
 
 			if ('dataset' in item) {
-				items.push({ element: item, i, ...item.dataset });
+				items.push(Object.assign({ element: item, i }, item.dataset));
 			} else {
 				item.i = i;
 				items.push(item);
@@ -3014,12 +3015,19 @@ function instance($$self, $$props, $$invalidate) {
 	};
 
 	const close = () => {
-		opts.onClose?.(container.el, activeItem);
+		var _a;
+
+		(_a = opts.onClose) === null || _a === void 0
+		? void 0
+		: _a.call(opts, container.el, activeItem);
+
 		closing.set(true);
 		$$invalidate(0, items = null);
 
 		// restore focus to trigger element
-		focusTrigger?.focus({ preventScroll: true });
+		focusTrigger === null || focusTrigger === void 0
+		? void 0
+		: focusTrigger.focus({ preventScroll: true });
 	};
 
 	const prev = () => setPosition(position - 1);
@@ -3034,7 +3042,9 @@ function instance($$self, $$props, $$invalidate) {
  * returns next gallery position (looped if neccessary)
  * @param {number} index
  */
-	const getNextPosition = index => (index + items.length) % items.length;
+	const getNextPosition = index => {
+		if (items) return (index + items.length) % items.length; else return index + 1;
+	};
 
 	const onKeydown = e => {
 		const { key, shiftKey } = e;
@@ -3050,7 +3060,8 @@ function instance($$self, $$props, $$invalidate) {
 			const { activeElement } = document;
 
 			// allow browser to handle tab into video controls only
-			if (shiftKey || !activeElement.controls) {
+			//@ts-ignore
+			if (shiftKey || !(activeElement && activeElement.controls)) {
 				e.preventDefault();
 				const { focusWrap = container.el } = opts;
 				const tabbable = [...focusWrap.querySelectorAll('*')].filter(node => node.tabIndex >= 0);
@@ -3066,8 +3077,11 @@ function instance($$self, $$props, $$invalidate) {
  * @param {object} item object with height / width properties
  * @returns {Array} [width: number, height: number]
  */
+	//@ts-ignore
 	const calculateDimensions = ({ width, height }) => {
+		//chris may need to default 1920 x 1080
 		const { scale = 0.99 } = opts;
+
 		const ratio = Math.min(1, container.w / width * scale, container.h / height * scale);
 
 		// round number so we don't use a float as the sizes attribute
@@ -3088,7 +3102,10 @@ function instance($$self, $$props, $$invalidate) {
 	const loadImage = item => {
 		if (item.img) {
 			const image = document.createElement('img');
+
+			//@ts-ignore
 			image.sizes = opts.sizes || `${calculateDimensions(item)[0]}px`;
+
 			image.srcset = item.img;
 			item.preload = true;
 
@@ -3102,7 +3119,7 @@ function instance($$self, $$props, $$invalidate) {
 	const mediaTransition = (node, isEntering) => {
 		if (!isOpen || !items) {
 			// entrance / exit transition
-			$$invalidate(19, isOpen = isEntering);
+			$$invalidate(20, isOpen = isEntering);
 
 			return opts.intro
 			? fly(node, { y: isEntering ? 10 : -10 })
@@ -3118,12 +3135,27 @@ function instance($$self, $$props, $$invalidate) {
 
 	/** custom svelte transition for entrance zoom */
 	const scaleIn = node => {
+		var _a;
 		let dimensions;
 
 		if (activeItemIsHtml()) {
-			const bpItem = node.firstChild.firstChild;
-			dimensions = [bpItem.clientWidth, bpItem.clientHeight];
+			const bpItem = (_a = node === null || node === void 0
+			? void 0
+			: node.firstChild) === null || _a === void 0
+			? void 0
+			: _a.firstChild;
+
+			//@ts-ignore
+			dimensions = [
+				bpItem === null || bpItem === void 0
+				? void 0
+				: bpItem.clientWidth,
+				bpItem === null || bpItem === void 0
+				? void 0
+				: bpItem.clientHeight
+			];
 		} else {
+			//@ts-ignore
 			dimensions = calculateDimensions(activeItem);
 		}
 
@@ -3161,9 +3193,13 @@ function instance($$self, $$props, $$invalidate) {
 
 	/** code to run on mount / destroy */
 	const containerActions = node => {
-		$$invalidate(20, container.el = node, container);
+		var _a;
+		$$invalidate(21, container.el = node, container);
 		let roActive;
-		opts.onOpen?.(container.el, activeItem);
+
+		(_a = opts.onOpen) === null || _a === void 0
+		? void 0
+		: _a.call(opts, container.el, activeItem);
 
 		// don't use keyboard events for inline galleries
 		if (!inline) {
@@ -3172,19 +3208,25 @@ function instance($$self, $$props, $$invalidate) {
 
 		// set up resize observer
 		const ro = new ResizeObserver(entries => {
+				var _a;
+
 				// use roActive to avoid running on initial open
 				if (roActive) {
-					$$invalidate(20, container.w = entries[0].contentRect.width, container);
-					$$invalidate(20, container.h = entries[0].contentRect.height, container);
+					$$invalidate(21, container.w = entries[0].contentRect.width, container);
+					$$invalidate(21, container.h = entries[0].contentRect.height, container);
 					$$invalidate(7, smallScreen = container.w < 769);
 
 					// run child component resize function
 					if (!activeItemIsHtml()) {
-						resizeFunc?.();
+						resizeFunc === null || resizeFunc === void 0
+						? void 0
+						: resizeFunc();
 					}
 
 					// run user defined onResize function
-					opts.onResize?.(container.el, activeItem);
+					(_a = opts.onResize) === null || _a === void 0
+					? void 0
+					: _a.call(opts, container.el, activeItem);
 				}
 
 				roActive = true;
@@ -3194,6 +3236,7 @@ function instance($$self, $$props, $$invalidate) {
 
 		return {
 			destroy() {
+				var _a;
 				ro.disconnect();
 				globalThis.removeEventListener('keydown', onKeydown);
 				closing.set(false);
@@ -3201,7 +3244,9 @@ function instance($$self, $$props, $$invalidate) {
 				// remove class hiding scroll
 				html.classList.remove('bp-lock');
 
-				opts.onClosed?.();
+				(_a = opts.onClosed) === null || _a === void 0
+				? void 0
+				: _a.call(opts);
 			}
 		};
 	};
@@ -3216,6 +3261,7 @@ function instance($$self, $$props, $$invalidate) {
 	};
 
 	const downloadPhoto = (url, filename) => {
+		//@ts-ignore
 		if (!filename) filename = url.split('\\').pop().split('/').pop();
 
 		fetch(url, {
@@ -3231,12 +3277,14 @@ function instance($$self, $$props, $$invalidate) {
 
 	const pointerup_handler = function (e) {
 		// only close if left click on self and not dragged
+		//@ts-ignore
 		if (e.button !== 2 && e.target === this && clickedEl === this) {
 			!opts.noClose && close();
 		}
 	};
 
 	const click_handler = () => {
+		//@ts-ignore
 		const url = Object.hasOwn(activeItem, 'full')
 		? activeItem['full']
 		: activeItem['img'];
@@ -3245,6 +3293,7 @@ function instance($$self, $$props, $$invalidate) {
 	};
 
 	const click_handler_1 = () => {
+		//@ts-ignore
 		const url = Object.hasOwn(activeItem, 'full')
 		? activeItem['full']
 		: activeItem['img'];
@@ -3258,14 +3307,16 @@ function instance($$self, $$props, $$invalidate) {
 	};
 
 	$$self.$$.update = () => {
-		if ($$self.$$.dirty[0] & /*items, position, isOpen, opts, container, activeItem*/ 1572977) {
+		if ($$self.$$.dirty[0] & /*items, position, isOpen, opts, _a, container, activeItem*/ 3670129) {
 			if (items) {
 				// update active item when position changes
 				$$invalidate(6, activeItem = items[position]);
 
 				if (isOpen) {
 					// run onUpdate when items updated
-					opts.onUpdate?.(container.el, activeItem);
+					$$invalidate(19, _a = opts.onUpdate) === null || _a === void 0
+					? void 0
+					: _a.call(opts, container.el, activeItem);
 				}
 			}
 		}
@@ -3291,6 +3342,7 @@ function instance($$self, $$props, $$invalidate) {
 		target,
 		open,
 		setPosition,
+		_a,
 		isOpen,
 		container,
 		pointerdown_handler,
