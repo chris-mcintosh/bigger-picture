@@ -2,11 +2,11 @@ import svelte from 'rollup-plugin-svelte'
 import resolve from '@rollup/plugin-node-resolve'
 import commonjs from '@rollup/plugin-commonjs'
 //import { terser } from 'rollup-plugin-terser'
-import terser from '@rollup/plugin-terser';
+import terser from '@rollup/plugin-terser'
 import size from 'rollup-plugin-size'
 import modify from 'rollup-plugin-modify'
 
-const production = !process.env.ROLLUP_WATCH
+const production = false
 
 const terserOptions = {
 	ecma: 2015,
@@ -73,94 +73,14 @@ let config = [
 		output: {
 			format: 'iife',
 			file: 'public/demo.js',
+			name: 'app',
 		},
 		plugins: [
+			svelte({}),
+			resolve({ browser: true, dedupe: ['svelte'] }),
 			commonjs(),
-			svelte({
-				preprocess: [cleanSvelteWhitespace],
-				compilerOptions: {
-					dev: !production,
-					immutable: true,
-					css: false,
-				},
-			}),
-			resolve({ browser: true }),
-			...findReplaceOptions,
-			production && terser(terserOptions),
 		],
 	},
 ]
-
-if (production) {
-	// remove unneeded setters in library
-	findReplaceOptions.push(
-		modify({ find: /^\sset .+{$\n\s+this.+[^}]+}/gm, replace: '' })
-	)
-	// unminified dist files
-	config.push({
-		input: 'src/bigger-picture.js',
-		output: [
-			{
-				format: 'es',
-				file: 'dist/bigger-picture.mjs',
-			},
-			{
-				format: 'umd',
-				name: 'BiggerPicture',
-				file: 'dist/bigger-picture.umd.js',
-				strict: false,
-			},
-			{
-				format: 'cjs',
-				name: 'BiggerPicture',
-				file: 'dist/bigger-picture.cjs',
-				strict: false,
-				exports: 'default',
-			},
-		],
-		plugins: [
-			commonjs(),
-			svelte({
-				preprocess: [cleanSvelteWhitespace],
-				compilerOptions: {
-					immutable: true,
-					css: false,
-				},
-			}),
-			resolve({ browser: true }),
-			...findReplaceOptions,
-		],
-	})
-	// minified dist files
-	config.push({
-		input: 'src/bigger-picture.js',
-		output: [
-			{
-				format: 'iife',
-				name: 'BiggerPicture',
-				file: 'dist/bigger-picture.min.js',
-				strict: false,
-			},
-			{
-				format: 'es',
-				file: 'dist/bigger-picture.min.mjs',
-			},
-		],
-		plugins: [
-			commonjs(),
-			svelte({
-				preprocess: [cleanSvelteWhitespace],
-				compilerOptions: {
-					immutable: true,
-					css: false,
-				},
-			}),
-			resolve({ browser: true }),
-			...findReplaceOptions,
-			terser(terserOptions),
-			size(),
-		],
-	})
-}
 
 export default config

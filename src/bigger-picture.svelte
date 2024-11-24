@@ -1,7 +1,5 @@
-<svelte:options ={true} immutable={true} />
-
 <script>
-	import { run } from 'svelte/legacy';
+	import { run } from 'svelte/legacy'
 
 	import { fly } from 'svelte/transition'
 	import { cubicOut } from 'svelte/easing'
@@ -11,9 +9,6 @@
 	import { writable } from 'svelte/store'
 	import { closing } from './stores'
 
-	
-
-	
 	/**
 	 * @typedef {Object} Props
 	 * @property {any} [items] - items currently displayed in gallery
@@ -21,7 +16,7 @@
 	 */
 
 	/** @type {Props} */
-	let { items = $bindable(undefined), target = undefined } = $props();
+	let { items = $bindable(undefined), target = undefined } = $props()
 
 	const html = document.documentElement
 
@@ -69,6 +64,7 @@
 
 	run(() => {
 		if (items) {
+			console.log('in run')
 			// update active item when position changes
 			activeItem = items[position]
 			if (isOpen) {
@@ -76,7 +72,7 @@
 				opts.onUpdate?.(container.el, activeItem)
 			}
 		}
-	});
+	})
 
 	/** receives options and opens gallery */
 	export const open = (options) => {
@@ -172,7 +168,7 @@
 	 * @param {object} item object with height / width properties
 	 * @returns {Array} [width: number, height: number]
 	 */
-	const calculateDimensions = ({ width = 1920, height = 1080 }) => {
+	const calculateDimensions = (width, height) => {
 		const { scale = 0.99 } = opts
 		const ratio = Math.min(
 			1,
@@ -328,10 +324,7 @@
 			.catch((e) => console.error(e))
 	}
 
-	export {
-		items,
-		target,
-	}
+	export { items, target }
 </script>
 
 {#if items}
@@ -423,11 +416,7 @@
 					aria-label="Previous"
 					onclick={prev}
 				></button>
-				<button
-					class="bp-next"
-					title="Next"
-					aria-label="Next"
-					onclick={next}
+				<button class="bp-next" title="Next" aria-label="Next" onclick={next}
 				></button>
 			{/if}
 		</div>

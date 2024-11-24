@@ -1,5 +1,3 @@
-<svelte:options ={true} />
-
 <script>
 	import { fade } from 'svelte/transition'
 
@@ -9,7 +7,7 @@
 	 */
 
 	/** @type {Props} */
-	let { isClosing = false } = $props();
+	let { isClosing = false } = $props()
 
 	let layers = Array.from(Array(9))
 
@@ -17,9 +15,7 @@
 
 	let onScroll = (e) => (y = e.target.scrollTop)
 
-	export {
-		isClosing,
-	}
+	export { isClosing }
 </script>
 
 <div class="firewatch">

@@ -77,17 +77,23 @@
 	"packageManager": "pnpm@8.12.0",
 	"devDependencies": {
 		"@rollup/plugin-commonjs": "^25.0.7",
-		"@rollup/plugin-node-resolve": "^15.2.3",
+		"@rollup/plugin-node-resolve": "^15.3.0",
+		"@rollup/plugin-terser": "^0.4.4",
+		"@sveltejs/vite-plugin-svelte": "^4.0.0",
 		"flexmasonry": "^0.2.3",
-		"live-server": "^1.2.2",
+		"live-server": "^1.2.0",
 		"npm-run-all": "^4.1.5",
 		"prismjs": "^1.28.0",
 		"rollup": "^4.10.0",
 		"rollup-plugin-modify": "^3.0.0",
-		"rollup-plugin-size": "^0.2.2",
+		"rollup-plugin-size": "^0.3.1",
 		"rollup-plugin-svelte": "^7.2.2",
-		"@rollup/plugin-terser": "^0.4.4",
 		"sass": "^1.51.0",
-		"svelte": "^5.0.0"
+		"svelte": "^5.2.7"
+	},
+	"dependencies": {
+		"@rollup/plugin-replace": "^6.0.1",
+		"rollup-plugin-css-only": "^4.5.2",
+		"vite": "^5.4.11"
 	}
 }

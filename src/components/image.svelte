@@ -1,5 +1,3 @@
-<!-- @migration-task Error while migrating Svelte code: migrating this component would require adding a `$props` rune but there's already a variable named props.
-     Rename the variable and try again or migrate by hand. -->
 <script>
 	import { tweened } from 'svelte/motion'
 	import {
@@ -11,20 +9,34 @@
 	import { fly } from 'svelte/transition'
 	import Loading from './loading.svelte'
 
-	export let props
-	export let smallScreen
+	//import { zoomDragTranslate, imageDimensions } from './stores';
 
-	let { activeItem, opts, prev, next, zoomed, container } = props
+	/*let {
+		activeItem = $bindable(),
+		opts = $bindable(),
+		prev = $bindable(),
+		next = $bindable(),
+		zoomed = $bindable(),
+		container = $bindable(),
+		smallScreen = $bindable(),
+		props
+	} = $props()*/
 
-	let maxZoom = activeItem.maxZoom || opts.maxZoom || 10
+	let { activeItem, opts, prev, next, zoomed, container, smallScreen, props } =
+		$props()
+
+	let maxZoom = activeItem?.maxZoom || opts?.maxZoom || 10
 
 	let calculatedDimensions = props.calculateDimensions(activeItem)
 
 	/** value of sizes attribute */
-	let sizes = calculatedDimensions[0]
+
+	let sizes = $state(calculatedDimensions[0])
 
 	/** tracks load state of image */
-	let loaded, showLoader
+	//let loaded, showLoader
+	let loaded = $state(false)
+	let showLoader = $state(false)
 
 	/** stores pinch info if multiple touch events active */
 	let pinchDetails
@@ -35,16 +47,19 @@
 	/** track distance for pinch events */
 	let prevDiff = 0
 
-	let pointerDown, hasDragged
-	let dragStartX, dragStartY
+	let pointerDown = $state(false)
+	let hasDragged = $state(false)
+	let dragStartX = $state(0)
+	let dragStartY = $state(0)
 
 	/** zoomDragTranslate values on start of drag */
-	let dragStartTranslateX, dragStartTranslateY
+	let dragStartTranslateX = $state(0)
+	let dragStartTranslateY = $state(0)
 
 	/** if true, adds class to .bp-wrap to avoid image cropping */
-	let closingWhileZoomed
+	let closingWhileZoomed = $state(false)
 
-	const naturalWidth = +activeItem.width
+	const naturalWidth = activeItem?.width || 1920
 
 	/** store positions for drag inertia */
 	const dragPositions = []
@@ -60,15 +75,27 @@
 	/** translate transform for pointerDown */
 	const zoomDragTranslate = tweened([0, 0], defaultTweenOptions(400))
 
-	$: zoomed.set($imageDimensions[0] - 10 > calculatedDimensions[0])
+	import { writable } from 'svelte/store'
+
+	// Create a local variable to handle the zoom state
+	let localZoomed = zoomed
+
+	function updateZoom() {
+		localZoomed = $imageDimensions[0] - 10 > calculatedDimensions[0]
+		// If needed, pass the updated value back to the parent (e.g., through a custom event or store)
+		zoomed = localZoomed // Not ideal in runes mode, avoid direct prop assignment
+	}
 
 	// if zoomed while closing, zoom out image and add class
 	// to change contain value on .bp-wrap to avoid cropping
-	$: if ($closing && $zoomed && !opts.intro) {
-		const closeTweenOpts = defaultTweenOptions(480)
-		zoomDragTranslate.set([0, 0], closeTweenOpts)
-		imageDimensions.set(calculatedDimensions, closeTweenOpts)
-		closingWhileZoomed = true
+
+	function checkClosingState() {
+		if ($closing && $zoomed && !opts.intro) {
+			const closeTweenOpts = defaultTweenOptions(480)
+			zoomDragTranslate.set([0, 0], closeTweenOpts)
+			imageDimensions.set(calculatedDimensions, closeTweenOpts)
+			closingWhileZoomed = true
+		}
 	}
 
 	/** calculate translate position with bounds */
@@ -147,37 +174,42 @@
 			return zoomDragTranslate.set([0, 0])
 		}
 
-		let { x, y, width, height } = bpImg.getBoundingClientRect()
+		console.log('hi')
+		if (bpImg) {
+			let { x, y, width, height } = bpImg.getBoundingClientRect()
 
-		// distance clicked from center of image
-		const offsetX = e ? e.clientX - x - width / 2 : 0
-		const offsetY = e ? e.clientY - y - height / 2 : 0
+			// distance clicked from center of image
+			const offsetX = e ? e.clientX - x - width / 2 : 0
+			const offsetY = e ? e.clientY - y - height / 2 : 0
 
-		x = -offsetX * (newWidth / width) + offsetX
-		y = -offsetY * (newHeight / height) + offsetY
+			x = -offsetX * (newWidth / width) + offsetX
+			y = -offsetY * (newHeight / height) + offsetY
 
-		const newDimensions = [newWidth, newHeight]
+			const newDimensions = [newWidth, newHeight]
 
-		// set new dimensions and update sizes property
-		imageDimensions.set(newDimensions).then(() => {
-			sizes = Math.round(Math.max(sizes, newWidth))
-		})
+			// set new dimensions and update sizes property
+			imageDimensions.set(newDimensions).then(() => {
+				sizes = Math.round(Math.max(sizes, newWidth))
+			})
 
-		// update translate value
-		zoomDragTranslate.set(
-			boundTranslateValues(
-				[$zoomDragTranslate[0] + x, $zoomDragTranslate[1] + y],
-				newDimensions
+			// update translate value
+			zoomDragTranslate.set(
+				boundTranslateValues(
+					[$zoomDragTranslate[0] + x, $zoomDragTranslate[1] + y],
+					newDimensions
+				)
 			)
-		)
+		}
 	}
 
 	// allow zoom to be read / set externally
-	Object.defineProperty(activeItem, 'zoom', {
+	/*Object.defineProperty(activeItem, 'zoom', {
 		configurable: true,
 		get: () => $zoomed,
 		set: (bool) => changeZoom(bool ? maxZoom : -maxZoom),
-	})
+	})*/
+	//chris
+	changeZoom(maxZoom)
 
 	const onWheel = (e) => {
 		// return if scrolling past inline gallery w/ wheel
@@ -286,6 +318,8 @@
 	const removeEventFromCache = (e) => pointerCache.delete(e.pointerId)
 
 	function onPointerUp(e) {
+		console.log('pointer up')
+		console.log(activeItem)
 		removeEventFromCache(e)
 
 		if (pinchDetails) {
@@ -331,7 +365,12 @@
 	}
 
 	const onMount = (node) => {
+		console.log('test')
+		updateZoom()
+		checkClosingState()
 		bpImg = node
+		console.log('bpImg')
+		console.log(bpImg)
 		// handle window resize
 		props.setResizeFunc(() => {
 			calculatedDimensions = props.calculateDimensions(activeItem)
@@ -343,10 +382,12 @@
 			}
 		})
 		// decode initial image before rendering
-		props.loadImage(activeItem).then(() => {
-			loaded = true
-			props.preloadNext()
-		})
+		if (activeItem) {
+			props.loadImage(activeItem).then(() => {
+				loaded = true
+				props.preloadNext()
+			})
+		}
 		// show loading indicator if needed
 		setTimeout(() => {
 			showLoader = !loaded
@@ -361,11 +402,11 @@
 
 <div
 	class="bp-img-wrap"
-	on:wheel|passive={onWheel}
-	on:pointerdown={onPointerDown}
-	on:pointermove={onPointerMove}
-	on:pointerup={onPointerUp}
-	on:pointercancel={removeEventFromCache}
+	onwheel={onWheel}
+	onpointerdown={onPointerDown}
+	onpointermove={onPointerMove}
+	onpointerup={onPointerUp}
+	onpointercancel={removeEventFromCache}
 	class:bp-close={closingWhileZoomed}
 >
 	<div
@@ -387,7 +428,7 @@
 				use:addSrc
 				sizes={opts.sizes || `${sizes}px`}
 				alt={activeItem.alt}
-				on:error={(error) => opts.onError?.(container, activeItem, error)}
+				onerror={(error) => opts.onError?.(container, activeItem, error)}
 				out:fly|global
 			/>
 		{/if}

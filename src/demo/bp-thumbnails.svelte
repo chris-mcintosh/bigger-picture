@@ -1,5 +1,5 @@
 <script>
-	import { run } from 'svelte/legacy';
+	import { run } from 'svelte/legacy'
 
 	import BiggerPicture from '../bigger-picture.js'
 	import { tweened } from 'svelte/motion'
@@ -16,7 +16,9 @@
 	let thumbsWidth = $state()
 	let containerWidth = $state()
 	let initialTranslate = 0
-	let isPointerDown, pointerDownPos, hasDragged = $state()
+	let isPointerDown,
+		pointerDownPos,
+		hasDragged = $state()
 	let dragPositions = []
 	let focusWrap = $state()
 	let closing
@@ -29,7 +31,6 @@
 		easing: cubicOut,
 		duration: prefersReducedMotion ? 0 : 250,
 	})
-
 
 	export const open = (options) => {
 		opts = closing ? null : options
@@ -120,7 +121,7 @@
 			// make sure button is in view when position updates
 			setTimeout(scrollToButton, 0)
 		}
-	});
+	})
 </script>
 
 {#if opts}
@@ -131,7 +132,7 @@
 		onpointerup={pointerUp}
 		onpointercancel={pointerUp}
 		use:resize
-		onbp:resize={({ detail }) => {
+		onbpresize={({ detail }) => {
 			containerWidth = detail.cr.width
 			$translate = 0
 		}}
@@ -152,7 +153,7 @@
 				style="transform: translatex({$translate}px)"
 				onpointerdown={pointerDown}
 				use:resize
-				onbp:resize={({ detail }) => {
+				onbpresize={({ detail }) => {
 					thumbsWidth = detail.cr.width
 				}}
 			>

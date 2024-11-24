@@ -30,6 +30,7 @@
 		height:{dimensions[1]}px
 	"
 >
+	<!-- svelte-ignore element_invalid_self_closing_tag -->
 	<iframe
 		use:addSrc
 		allow="autoplay; fullscreen"
