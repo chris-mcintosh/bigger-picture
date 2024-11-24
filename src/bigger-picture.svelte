@@ -1,6 +1,8 @@
-<svelte:options accessors={true} immutable={true} />
+<svelte:options ={true} immutable={true} />
 
 <script>
+	import { run } from 'svelte/legacy';
+
 	import { fly } from 'svelte/transition'
 	import { cubicOut } from 'svelte/easing'
 	import ImageItem from './components/image.svelte'
@@ -9,40 +11,46 @@
 	import { writable } from 'svelte/store'
 	import { closing } from './stores'
 
-	/** items currently displayed in gallery */
-	export let items = undefined
+	
 
-	/** element the gallery is mounted within (passed during initialization)*/
-	export let target = undefined
+	
+	/**
+	 * @typedef {Object} Props
+	 * @property {any} [items] - items currently displayed in gallery
+	 * @property {any} [target] - element the gallery is mounted within (passed during initialization)
+	 */
+
+	/** @type {Props} */
+	let { items = $bindable(undefined), target = undefined } = $props();
 
 	const html = document.documentElement
 
 	/** index of current active item */
-	let position
+	let position = $state()
 
 	/** options passed via open method */
-	let opts
+	let opts = $state()
 
 	/** bool tracks open state */
-	let isOpen
+	let isOpen = $state()
 
 	/** dom element to restore focus to on close */
 	let focusTrigger
 
 	/** bool true if container width < 769 */
-	let smallScreen
+	let smallScreen = $state()
 
 	/** bool value of inline option passed in open method */
-	let inline
+	let inline = $state()
 
 	/** when position is set */
 	let movement
 
 	/** stores target on pointerdown (ref for overlay close) */
-	let clickedEl
+	let clickedEl = $state()
 
 	/** active item object */
-	let activeItem
+	let activeItem = $state()
 
 	/** returns true if `activeItem` is html */
 	const activeItemIsHtml = () =>
@@ -54,19 +62,21 @@
 	const setResizeFunc = (fn) => (resizeFunc = fn)
 
 	/** container element (el) / width (w) / height (h) */
-	const container = {}
+	const container = $state({})
 
 	// /** true if image is currently zoomed past starting size */
 	const zoomed = writable(0)
 
-	$: if (items) {
-		// update active item when position changes
-		activeItem = items[position]
-		if (isOpen) {
-			// run onUpdate when items updated
-			opts.onUpdate?.(container.el, activeItem)
+	run(() => {
+		if (items) {
+			// update active item when position changes
+			activeItem = items[position]
+			if (isOpen) {
+				// run onUpdate when items updated
+				opts.onUpdate?.(container.el, activeItem)
+			}
 		}
-	}
+	});
 
 	/** receives options and opens gallery */
 	export const open = (options) => {
@@ -317,6 +327,11 @@
 			})
 			.catch((e) => console.error(e))
 	}
+
+	export {
+		items,
+		target,
+	}
 </script>
 
 {#if items}
@@ -328,14 +343,14 @@
 		class:bp-small={smallScreen}
 		class:bp-noclose={opts.noClose}
 	>
-		<div out:fly={{ duration: 480 }} />
+		<div out:fly={{ duration: 480 }}></div>
 		{#key activeItem.i}
 			<div
 				class="bp-inner"
 				in:mediaTransition|global={true}
 				out:mediaTransition|global={false}
-				on:pointerdown={(e) => (clickedEl = e.target)}
-				on:pointerup={function (e) {
+				onpointerdown={(e) => (clickedEl = e.target)}
+				onpointerup={function (e) {
 					// only close if left click on self and not dragged
 					if (e.button !== 2 && e.target === this && clickedEl === this) {
 						!opts.noClose && close()
@@ -367,32 +382,32 @@
 				class="bp-base bp-x"
 				title="Close"
 				aria-label="Close"
-				on:click={close}
-			/>
+				onclick={close}
+			></button>
 			<!-- External button -->
 			<button
 				class="bp-base bp-ext"
 				title="Open Fullsize"
 				aria-label="Open Fullsize"
-				on:click={() => {
+				onclick={() => {
 					const url = Object.hasOwn(activeItem, 'full')
 						? activeItem['full']
 						: activeItem['img']
 					window.open(url, '_blank')
 				}}
-			/>
+			></button>
 			<!-- Save button -->
 			<button
 				class="bp-base bp-save"
 				title="Save"
 				aria-label="Save"
-				on:click={() => {
+				onclick={() => {
 					const url = Object.hasOwn(activeItem, 'full')
 						? activeItem['full']
 						: activeItem['img']
 					downloadPhoto(url, url.replace(/.*\//, ''))
 				}}
-			/>
+			></button>
 			<!-- Save All -->
 			<!-- Share All  -->
 
@@ -406,14 +421,14 @@
 					class="bp-prev"
 					title="Previous"
 					aria-label="Previous"
-					on:click={prev}
-				/>
+					onclick={prev}
+				></button>
 				<button
 					class="bp-next"
 					title="Next"
 					aria-label="Next"
-					on:click={next}
-				/>
+					onclick={next}
+				></button>
 			{/if}
 		</div>
 	</div>

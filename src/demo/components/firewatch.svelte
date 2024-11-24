@@ -1,15 +1,25 @@
-<svelte:options accessors={true} />
+<svelte:options ={true} />
 
 <script>
 	import { fade } from 'svelte/transition'
 
-	export let isClosing = false
+	/**
+	 * @typedef {Object} Props
+	 * @property {boolean} [isClosing]
+	 */
+
+	/** @type {Props} */
+	let { isClosing = false } = $props();
 
 	let layers = Array.from(Array(9))
 
-	let y
+	let y = $state()
 
 	let onScroll = (e) => (y = e.target.scrollTop)
+
+	export {
+		isClosing,
+	}
 </script>
 
 <div class="firewatch">
@@ -26,7 +36,7 @@
 
 	<span style="opacity: {1 - Math.max(0, y / 50)}"> scroll down </span>
 
-	<div class="firewatch-scroll" on:scroll={onScroll}>
+	<div class="firewatch-scroll" onscroll={onScroll}>
 		<div class="foreground">
 			You have scrolled {Math.round(y)} pixels
 		</div>
