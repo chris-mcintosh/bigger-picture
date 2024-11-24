@@ -1,32 +1,33 @@
-<script>
+<script lang="ts">
 	/*
 	This could be cleaner with svelte:element to switch video / audio
 	and each blocks for sources / tracks, but doing it that way creates
 	a larger vanilla bundle size, so we make them ourselves.
 	*/
-
+	//@ts-ignore
 	import Loading from './loading.svelte'
 	import { addAttributes, getThumbBackground } from '../stores'
 
-	export let props
+	export let allProps
 
-	let loaded, dimensions
+	let loaded: boolean
+	let dimensions: any[]
 
-	const { activeItem, opts, container } = props
+	const { activeItem, opts, container } = allProps
 
 	const setDimensions = () =>
-		(dimensions = props.calculateDimensions(activeItem))
+		(dimensions = allProps.calculateDimensions(activeItem))
 
 	setDimensions()
 
-	props.setResizeFunc(setDimensions)
+	allProps.setResizeFunc(setDimensions)
 
 	/** create audo / video element */
-	const onMount = (node) => {
-		let mediaElement
+	const onMount = (node: HTMLDivElement) => {
+		let mediaElement: HTMLElement
 
 		/** takes supplied object and creates elements in video */
-		const appendToVideo = (tag, arr) => {
+		const appendToVideo = (tag: string, arr: string) => {
 			if (!Array.isArray(arr)) {
 				arr = JSON.parse(arr)
 			}
@@ -34,6 +35,7 @@
 				// create media element if it doesn't exist
 				if (!mediaElement) {
 					mediaElement = document.createElement(
+						//@ts-ignore
 						obj.type?.includes('audio') ? 'audio' : 'video'
 					)
 					addAttributes(mediaElement, {
@@ -48,14 +50,18 @@
 				const el = document.createElement(tag)
 				addAttributes(el, obj)
 				if (tag == 'source') {
-					el.onError = (error) => opts.onError?.(container, activeItem, error)
+					el.onerror = (error: any) =>
+						opts.onError?.(container, activeItem, error)
 				}
 				mediaElement.append(el)
 			}
 		}
 		appendToVideo('source', activeItem.sources)
 		appendToVideo('track', activeItem.tracks || [])
+		//Chris issue here
+		//@ts-ignore
 		mediaElement.oncanplay = () => (loaded = true)
+		//@ts-ignore
 		node.append(mediaElement)
 	}
 </script>

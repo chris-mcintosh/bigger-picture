@@ -1,10 +1,12 @@
 import svelte from 'rollup-plugin-svelte'
 import resolve from '@rollup/plugin-node-resolve'
 import commonjs from '@rollup/plugin-commonjs'
-//import { terser } from 'rollup-plugin-terser'
-import terser from '@rollup/plugin-terser';
+import terser from '@rollup/plugin-terser'
 import size from 'rollup-plugin-size'
 import modify from 'rollup-plugin-modify'
+import typescript from '@rollup/plugin-typescript'
+import path from 'path'
+import sveltePreprocess from 'svelte-preprocess'
 
 const production = !process.env.ROLLUP_WATCH
 
@@ -71,18 +73,29 @@ let config = [
 	{
 		input: 'src/demo/demo.js',
 		output: {
+			name: 'app',
 			format: 'iife',
 			file: 'public/demo.js',
+			sourcemap: true,
 		},
 		plugins: [
 			commonjs(),
 			svelte({
-				preprocess: [cleanSvelteWhitespace],
+				preprocess: [
+					sveltePreprocess({
+						typescript: true, // Enable TypeScript in .svelte files
+					}),
+					cleanSvelteWhitespace,
+				],
+				typescript: true,
 				compilerOptions: {
 					dev: !production,
 					immutable: true,
 					css: false,
 				},
+			}),
+			typescript({
+				tsconfig: path.resolve(__dirname, 'tsconfig.json'), // Optional: reference tsconfig if needed
 			}),
 			resolve({ browser: true }),
 			...findReplaceOptions,
@@ -121,11 +134,19 @@ if (production) {
 		plugins: [
 			commonjs(),
 			svelte({
-				preprocess: [cleanSvelteWhitespace],
+				preprocess: [
+					sveltePreprocess({
+						typescript: true, // Enable TypeScript in .svelte files
+					}),
+					cleanSvelteWhitespace,
+				],
 				compilerOptions: {
 					immutable: true,
 					css: false,
 				},
+			}),
+			typescript({
+				tsconfig: path.resolve(__dirname, 'tsconfig.json'), // Optional: reference tsconfig if needed
 			}),
 			resolve({ browser: true }),
 			...findReplaceOptions,
@@ -136,6 +157,7 @@ if (production) {
 		input: 'src/bigger-picture.js',
 		output: [
 			{
+				name: 'app',
 				format: 'iife',
 				name: 'BiggerPicture',
 				file: 'dist/bigger-picture.min.js',
@@ -149,11 +171,19 @@ if (production) {
 		plugins: [
 			commonjs(),
 			svelte({
-				preprocess: [cleanSvelteWhitespace],
+				preprocess: [
+					sveltePreprocess({
+						typescript: true, // Enable TypeScript in .svelte files
+					}),
+					cleanSvelteWhitespace,
+				],
 				compilerOptions: {
 					immutable: true,
 					css: false,
 				},
+			}),
+			typescript({
+				tsconfig: path.resolve(__dirname, 'tsconfig.json'), // Optional: reference tsconfig if needed
 			}),
 			resolve({ browser: true }),
 			...findReplaceOptions,

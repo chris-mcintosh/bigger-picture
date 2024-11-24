@@ -162,7 +162,8 @@
 	 * @param {object} item object with height / width properties
 	 * @returns {Array} [width: number, height: number]
 	 */
-	const calculateDimensions = ({ width = 1920, height = 1080 }) => {
+	const calculateDimensions = ({ width, height }) => {
+		//chris may need to default 1920 x 1080
 		const { scale = 0.99 } = opts
 		const ratio = Math.min(
 			1,
@@ -343,11 +344,11 @@
 				}}
 			>
 				{#if activeItem.img}
-					<ImageItem props={getChildProps()} {smallScreen} />
+					<ImageItem allProps={getChildProps()} {smallScreen} />
 				{:else if activeItem.sources}
-					<Video props={getChildProps()} />
+					<Video allProps={getChildProps()} />
 				{:else if activeItem.iframe}
-					<Iframe props={getChildProps()} />
+					<Iframe allProps={getChildProps()} />
 				{:else}
 					<div class="bp-html">
 						{@html activeItem.html ?? activeItem.element.outerHTML}

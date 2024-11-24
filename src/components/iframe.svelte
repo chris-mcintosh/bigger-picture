@@ -1,21 +1,23 @@
-<script>
+<script lang="ts">
 	import { addAttributes } from '../stores'
+	//@ts-ignore
 	import Loading from './loading.svelte'
 
-	export let props
+	export let allProps
 
-	let loaded, dimensions
+	let loaded: boolean
+	let dimensions: any[]
 
-	const { activeItem } = props
+	const { activeItem } = allProps
 
 	const setDimensions = () =>
-		(dimensions = props.calculateDimensions(activeItem))
+		(dimensions = allProps.calculateDimensions(activeItem))
 
 	setDimensions()
 
-	props.setResizeFunc(setDimensions)
+	allProps.setResizeFunc(setDimensions)
 
-	const addSrc = (node) => {
+	const addSrc = (node: any) => {
 		addAttributes(node, activeItem.attr)
 		node.src = activeItem.iframe
 	}

@@ -12,7 +12,7 @@ export function defaultTweenOptions(duration: number): {
 	easing: typeof cubicOut
 	duration: number
 }
-export function getThumbBackground(activeItem: any): string | true
+export function getThumbBackground(activeItem: any): string | null | undefined
 /** Adds attributes to the given node based on the provided object  */
 export function addAttributes(
 	node: HTMLElement,

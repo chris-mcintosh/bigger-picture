@@ -1461,7 +1461,7 @@ function create_if_block_1$1(ctx) {
 	};
 }
 
-// (384:10) {#if showLoader}
+// (329:10) {#if showLoader}
 function create_if_block$1(ctx) {
 	let loading;
 	let current;
@@ -1657,18 +1657,24 @@ function instance$3($$self, $$props, $$invalidate) {
 	let $closing;
 	let $imageDimensions;
 	component_subscribe($$self, closing, $$value => $$invalidate(26, $closing = $$value));
-	let { props } = $$props;
-	let { smallScreen } = $$props;
-	let { activeItem, opts, prev, next, zoomed, container } = props;
+	let { allProps } = $$props;
+	let { activeItem, opts, prev, next, zoomed, container } = allProps;
 	component_subscribe($$self, zoomed, value => $$invalidate(25, $zoomed = value));
-	let maxZoom = activeItem.maxZoom || opts.maxZoom || 10;
-	let calculatedDimensions = props.calculateDimensions(activeItem);
+	let { smallScreen } = $$props;
+
+	let maxZoom = (activeItem === null || activeItem === void 0
+	? void 0
+	: activeItem.maxZoom) || (opts === null || opts === void 0 ? void 0 : opts.maxZoom) || 10;
+
+	let calculatedDimensions = allProps.calculateDimensions(activeItem);
 
 	/** value of sizes attribute */
 	let sizes = calculatedDimensions[0];
 
 	/** tracks load state of image */
-	let loaded, showLoader;
+	let loaded;
+
+	let showLoader;
 
 	/** stores pinch info if multiple touch events active */
 	let pinchDetails;
@@ -1679,16 +1685,22 @@ function instance$3($$self, $$props, $$invalidate) {
 	/** track distance for pinch events */
 	let prevDiff = 0;
 
-	let pointerDown, hasDragged;
-	let dragStartX, dragStartY;
+	let pointerDown;
+	let hasDragged;
+	let dragStartX;
+	let dragStartY;
 
 	/** zoomDragTranslate values on start of drag */
-	let dragStartTranslateX, dragStartTranslateY;
+	let dragStartTranslateX;
+
+	let dragStartTranslateY;
 
 	/** if true, adds class to .bp-wrap to avoid image cropping */
 	let closingWhileZoomed;
 
-	const naturalWidth = +activeItem.width;
+	const naturalWidth = +(activeItem === null || activeItem === void 0
+	? void 0
+	: activeItem.width);
 
 	/** store positions for drag inertia */
 	const dragPositions = [];
@@ -1761,7 +1773,7 @@ function instance$3($$self, $$props, $$invalidate) {
 	};
 
 	/** updates zoom level in or out based on amt value */
-	function changeZoom(amt = maxZoom, e) {
+	function changeZoom(amt = maxZoom, e = undefined) {
 		if ($closing) {
 			return;
 		}
@@ -1846,11 +1858,15 @@ function instance$3($$self, $$props, $$invalidate) {
 
 	/** on drag, update image translate val */
 	const onPointerMove = e => {
+		var _a;
+
 		if (pointerCache.size > 1) {
 			// if multiple pointer events, pass to handlePinch function
 			$$invalidate(4, pointerDown = false);
 
-			return opts.noPinch?.(container.el) || handlePinch(e);
+			return ((_a = opts.noPinch) === null || _a === void 0
+			? void 0
+			: _a.call(opts, container.el)) || handlePinch(e);
 		}
 
 		if (!pointerDown) {
@@ -1873,7 +1889,7 @@ function instance$3($$self, $$props, $$invalidate) {
 		if (!$zoomed) {
 			// close if swipe up
 			if (y < -90) {
-				$$invalidate(4, pointerDown = !opts.noClose && props.close());
+				$$invalidate(4, pointerDown = !opts.noClose && allProps.close());
 			}
 
 			// only handle left / right if not swiping vertically
@@ -1925,11 +1941,14 @@ function instance$3($$self, $$props, $$invalidate) {
 	const removeEventFromCache = e => pointerCache.delete(e.pointerId);
 
 	function onPointerUp(e) {
+		var _a;
 		removeEventFromCache(e);
 
 		if (pinchDetails) {
 			// reset prevDiff and clear pointerDown to trigger return below
-			$$invalidate(4, pointerDown = prevDiff = 0);
+			$$invalidate(4, pointerDown = false);
+
+			prevDiff = 0;
 
 			// set pinchDetails to null after last finger lifts
 			pinchDetails = pointerCache.size ? pinchDetails : null;
@@ -1943,8 +1962,9 @@ function instance$3($$self, $$props, $$invalidate) {
 		$$invalidate(4, pointerDown = false);
 
 		// close if overlay is clicked
+		//@ts-ignore
 		if (e.target === this && !opts.noClose) {
-			return props.close();
+			return allProps.close();
 		}
 
 		// add drag inertia / snap back to bounds
@@ -1959,7 +1979,9 @@ function instance$3($$self, $$props, $$invalidate) {
 					$zoomDragTranslate[1] - (posOne.y - posThree.y) * 5
 				]));
 			}
-		} else if (!opts.onImageClick?.(container.el, activeItem)) {
+		} else if (!((_a = opts.onImageClick) === null || _a === void 0
+		? void 0
+		: _a.call(opts, container.el, activeItem))) {
 			changeZoom($zoomed ? -maxZoom : maxZoom, e);
 		}
 
@@ -1974,8 +1996,8 @@ function instance$3($$self, $$props, $$invalidate) {
 		bpImg = node;
 
 		// handle globalThis resize
-		props.setResizeFunc(() => {
-			$$invalidate(24, calculatedDimensions = props.calculateDimensions(activeItem));
+		allProps.setResizeFunc(() => {
+			$$invalidate(24, calculatedDimensions = allProps.calculateDimensions(activeItem));
 
 			// adjust image size / zoom on resize, but not on mobile because
 			// some browsers (ios safari 15) constantly resize screen on drag
@@ -1986,9 +2008,9 @@ function instance$3($$self, $$props, $$invalidate) {
 		});
 
 		// decode initial image before rendering
-		props.loadImage(activeItem).then(() => {
+		allProps.loadImage(activeItem).then(() => {
 			$$invalidate(2, loaded = true);
-			props.preloadNext();
+			allProps.preloadNext();
 		});
 
 		// show loading indicator if needed
@@ -2008,7 +2030,7 @@ function instance$3($$self, $$props, $$invalidate) {
 	const error_handler = error => opts.onError?.(container, activeItem, error);
 
 	$$self.$$set = $$props => {
-		
+		if ('allProps' in $$props) $$invalidate(22, allProps = $$props.allProps);
 		if ('smallScreen' in $$props) $$invalidate(23, smallScreen = $$props.smallScreen);
 	};
 
@@ -2052,7 +2074,7 @@ function instance$3($$self, $$props, $$invalidate) {
 		onPointerUp,
 		onMount,
 		addSrc,
-		props,
+		allProps,
 		smallScreen,
 		calculatedDimensions,
 		$zoomed,
@@ -2064,7 +2086,7 @@ function instance$3($$self, $$props, $$invalidate) {
 class Image extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance$3, create_fragment$3, not_equal, { props: 22, smallScreen: 23 }, null, [-1, -1]);
+		init(this, options, instance$3, create_fragment$3, not_equal, { allProps: 22, smallScreen: 23 }, null, [-1, -1]);
 	}
 }
 
@@ -2146,12 +2168,13 @@ function create_fragment$2(ctx) {
 }
 
 function instance$2($$self, $$props, $$invalidate) {
-	let { props } = $$props;
-	let loaded, dimensions;
-	const { activeItem } = props;
-	const setDimensions = () => $$invalidate(1, dimensions = props.calculateDimensions(activeItem));
+	let { allProps } = $$props;
+	let loaded;
+	let dimensions;
+	const { activeItem } = allProps;
+	const setDimensions = () => $$invalidate(1, dimensions = allProps.calculateDimensions(activeItem));
 	setDimensions();
-	props.setResizeFunc(setDimensions);
+	allProps.setResizeFunc(setDimensions);
 
 	const addSrc = node => {
 		addAttributes(node, activeItem.attr);
@@ -2160,15 +2183,17 @@ function instance$2($$self, $$props, $$invalidate) {
 
 	const load_handler = () => $$invalidate(0, loaded = true);
 
-	
+	$$self.$$set = $$props => {
+		if ('allProps' in $$props) $$invalidate(4, allProps = $$props.allProps);
+	};
 
-	return [loaded, dimensions, activeItem, addSrc, props, load_handler];
+	return [loaded, dimensions, activeItem, addSrc, allProps, load_handler];
 }
 
 class Iframe extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance$2, create_fragment$2, not_equal, { props: 4 });
+		init(this, options, instance$2, create_fragment$2, not_equal, { allProps: 4 });
 	}
 }
 
@@ -2248,12 +2273,13 @@ function create_fragment$1(ctx) {
 }
 
 function instance$1($$self, $$props, $$invalidate) {
-	let { props } = $$props;
-	let loaded, dimensions;
-	const { activeItem, opts, container } = props;
-	const setDimensions = () => $$invalidate(1, dimensions = props.calculateDimensions(activeItem));
+	let { allProps } = $$props;
+	let loaded;
+	let dimensions;
+	const { activeItem, opts, container } = allProps;
+	const setDimensions = () => $$invalidate(1, dimensions = allProps.calculateDimensions(activeItem));
 	setDimensions();
-	props.setResizeFunc(setDimensions);
+	allProps.setResizeFunc(setDimensions);
 
 	/** create audo / video element */
 	const onMount = node => {
@@ -2261,6 +2287,8 @@ function instance$1($$self, $$props, $$invalidate) {
 
 		/** takes supplied object and creates elements in video */
 		const appendToVideo = (tag, arr) => {
+			var _a;
+
 			if (!Array.isArray(arr)) {
 				arr = JSON.parse(arr);
 			}
@@ -2268,7 +2296,12 @@ function instance$1($$self, $$props, $$invalidate) {
 			for (const obj of arr) {
 				// create media element if it doesn't exist
 				if (!mediaElement) {
-					mediaElement = document.createElement((obj.type?.includes('audio')) ? 'audio' : 'video');
+					mediaElement = document.createElement(//@ts-ignore
+					((_a = obj.type) === null || _a === void 0
+					? void 0
+					: _a.includes('audio'))
+					? 'audio'
+					: 'video');
 
 					addAttributes(mediaElement, {
 						controls: true,
@@ -2286,7 +2319,13 @@ function instance$1($$self, $$props, $$invalidate) {
 				addAttributes(el, obj);
 
 				if (tag == 'source') {
-					el.onError = error => opts.onError?.(container, activeItem, error);
+					el.onerror = error => {
+						var _a;
+
+						return (_a = opts.onError) === null || _a === void 0
+						? void 0
+						: _a.call(opts, container, activeItem, error);
+					};
 				}
 
 				mediaElement.append(el);
@@ -2295,19 +2334,26 @@ function instance$1($$self, $$props, $$invalidate) {
 
 		appendToVideo('source', activeItem.sources);
 		appendToVideo('track', activeItem.tracks || []);
+
+		//Chris issue here
+		//@ts-ignore
 		mediaElement.oncanplay = () => $$invalidate(0, loaded = true);
+
+		//@ts-ignore
 		node.append(mediaElement);
 	};
 
-	
+	$$self.$$set = $$props => {
+		if ('allProps' in $$props) $$invalidate(4, allProps = $$props.allProps);
+	};
 
-	return [loaded, dimensions, activeItem, onMount, props];
+	return [loaded, dimensions, activeItem, onMount, allProps];
 }
 
 class Video extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance$1, create_fragment$1, not_equal, { props: 4 });
+		init(this, options, instance$1, create_fragment$1, not_equal, { allProps: 4 });
 	}
 }
 
@@ -2454,7 +2500,7 @@ function create_if_block(ctx) {
 	};
 }
 
-// (335:199) {:else}
+// (335:208) {:else}
 function create_else_block(ctx) {
 	let div;
 	let raw_value = (/*activeItem*/ ctx[6].html ?? /*activeItem*/ ctx[6].element.outerHTML) + "";
@@ -2480,13 +2526,13 @@ function create_else_block(ctx) {
 	};
 }
 
-// (335:165) 
+// (335:171) 
 function create_if_block_5(ctx) {
 	let iframe;
 	let current;
 
 	iframe = new Iframe({
-			props: { props: /*getChildProps*/ ctx[13]() }
+			props: { allProps: /*getChildProps*/ ctx[13]() }
 		});
 
 	return {
@@ -2513,13 +2559,13 @@ function create_if_block_5(ctx) {
 	};
 }
 
-// (335:104) 
+// (335:107) 
 function create_if_block_4(ctx) {
 	let video;
 	let current;
 
 	video = new Video({
-			props: { props: /*getChildProps*/ ctx[13]() }
+			props: { allProps: /*getChildProps*/ ctx[13]() }
 		});
 
 	return {
@@ -2553,7 +2599,7 @@ function create_if_block_3(ctx) {
 
 	imageitem = new Image({
 			props: {
-				props: /*getChildProps*/ ctx[13](),
+				allProps: /*getChildProps*/ ctx[13](),
 				smallScreen: /*smallScreen*/ ctx[7]
 			}
 		});
@@ -2586,7 +2632,7 @@ function create_if_block_3(ctx) {
 	};
 }
 
-// (335:299) {#if activeItem.caption}
+// (335:308) {#if activeItem.caption}
 function create_if_block_2(ctx) {
 	let div;
 	let raw_value = /*activeItem*/ ctx[6].caption + "";
@@ -3020,7 +3066,7 @@ function instance($$self, $$props, $$invalidate) {
  * @param {object} item object with height / width properties
  * @returns {Array} [width: number, height: number]
  */
-	const calculateDimensions = ({ width = 1920, height = 1080 }) => {
+	const calculateDimensions = ({ width, height }) => {
 		const { scale = 0.99 } = opts;
 		const ratio = Math.min(1, container.w / width * scale, container.h / height * scale);
 

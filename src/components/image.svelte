@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { tweened } from 'svelte/motion'
 	import {
 		addAttributes,
@@ -7,45 +7,51 @@
 		getThumbBackground,
 	} from '../stores'
 	import { fly } from 'svelte/transition'
+	//@ts-ignore
 	import Loading from './loading.svelte'
 
-	export let props
-	export let smallScreen
+	export let allProps: any
 
-	let { activeItem, opts, prev, next, zoomed, container } = props
+	let { activeItem, opts, prev, next, zoomed, container } = allProps
 
-	let maxZoom = activeItem.maxZoom || opts.maxZoom || 10
+	export let smallScreen: boolean
 
-	let calculatedDimensions = props.calculateDimensions(activeItem)
+	let maxZoom = activeItem?.maxZoom || opts?.maxZoom || 10
+
+	let calculatedDimensions = allProps.calculateDimensions(activeItem)
 
 	/** value of sizes attribute */
 	let sizes = calculatedDimensions[0]
 
 	/** tracks load state of image */
-	let loaded, showLoader
+	let loaded: boolean
+	let showLoader: boolean
 
 	/** stores pinch info if multiple touch events active */
-	let pinchDetails
+	let pinchDetails: { clientX: number; clientY: number } | null
 
 	/** image html element (.bp-img) */
-	let bpImg
+	let bpImg: HTMLElement
 
 	/** track distance for pinch events */
 	let prevDiff = 0
 
-	let pointerDown, hasDragged
-	let dragStartX, dragStartY
+	let pointerDown: boolean
+	let hasDragged: boolean
+	let dragStartX: number
+	let dragStartY: number
 
 	/** zoomDragTranslate values on start of drag */
-	let dragStartTranslateX, dragStartTranslateY
+	let dragStartTranslateX: number
+	let dragStartTranslateY: number
 
 	/** if true, adds class to .bp-wrap to avoid image cropping */
-	let closingWhileZoomed
+	let closingWhileZoomed: boolean
 
-	const naturalWidth = +activeItem.width
+	const naturalWidth = +activeItem?.width
 
 	/** store positions for drag inertia */
-	const dragPositions = []
+	const dragPositions: any[] = []
 
 	/** cache pointer events to handle pinch */
 	const pointerCache = new Map()
@@ -70,7 +76,10 @@
 	}
 
 	/** calculate translate position with bounds */
-	const boundTranslateValues = ([x, y], newDimensions = $imageDimensions) => {
+	const boundTranslateValues = (
+		[x, y]: [number, number],
+		newDimensions = $imageDimensions
+	) => {
 		// image drag translate bounds
 		const maxTranslateX = (newDimensions[0] - container.w) / 2
 		const maxTranslateY = (newDimensions[1] - container.h) / 2
@@ -118,7 +127,7 @@
 	}
 
 	/** updates zoom level in or out based on amt value */
-	function changeZoom(amt = maxZoom, e) {
+	function changeZoom(amt = maxZoom, e: any | undefined = undefined) {
 		if ($closing) {
 			return
 		}
@@ -177,7 +186,7 @@
 		set: (bool) => changeZoom(bool ? maxZoom : -maxZoom),
 	})
 
-	const onWheel = (e) => {
+	const onWheel = (e: { preventDefault: () => void; deltaY: number }) => {
 		// return if scrolling past inline gallery w/ wheel
 		if (opts.inline && !$zoomed) {
 			return
@@ -189,7 +198,13 @@
 	}
 
 	/** on drag start, store initial position and image translate values */
-	const onPointerDown = (e) => {
+	const onPointerDown = (e: {
+		button: number
+		preventDefault: () => void
+		pointerId: any
+		clientX: number
+		clientY: number
+	}) => {
 		// don't run if right click
 		if (e.button !== 2) {
 			e.preventDefault()
@@ -203,7 +218,7 @@
 	}
 
 	/** on drag, update image translate val */
-	const onPointerMove = (e) => {
+	const onPointerMove = (e: { clientX: any; clientY: any }) => {
 		if (pointerCache.size > 1) {
 			// if multiple pointer events, pass to handlePinch function
 			pointerDown = false
@@ -229,7 +244,7 @@
 		if (!$zoomed) {
 			// close if swipe up
 			if (y < -90) {
-				pointerDown = !opts.noClose && props.close()
+				pointerDown = !opts.noClose && allProps.close()
 			}
 			// only handle left / right if not swiping vertically
 			if (Math.abs(y) < 30) {
@@ -258,7 +273,7 @@
 		}
 	}
 
-	const handlePinch = (e) => {
+	const handlePinch = (e: any) => {
 		// update event in cache and get values
 		const [p1, p2] = pointerCache.set(e.pointerId, e).values()
 
@@ -281,14 +296,15 @@
 	}
 
 	/** remove event from pointer event cache */
-	const removeEventFromCache = (e) => pointerCache.delete(e.pointerId)
+	const removeEventFromCache = (e: any) => pointerCache.delete(e.pointerId)
 
-	function onPointerUp(e) {
+	function onPointerUp(e: { target: any }) {
 		removeEventFromCache(e)
 
 		if (pinchDetails) {
 			// reset prevDiff and clear pointerDown to trigger return below
-			pointerDown = prevDiff = 0
+			pointerDown = false
+			prevDiff = 0
 			// set pinchDetails to null after last finger lifts
 			pinchDetails = pointerCache.size ? pinchDetails : null
 		}
@@ -301,8 +317,9 @@
 		pointerDown = false
 
 		// close if overlay is clicked
+		//@ts-ignore
 		if (e.target === this && !opts.noClose) {
-			return props.close()
+			return allProps.close()
 		}
 
 		// add drag inertia / snap back to bounds
@@ -328,11 +345,11 @@
 		dragPositions.length = 0
 	}
 
-	const onMount = (node) => {
+	const onMount = (node: HTMLElement) => {
 		bpImg = node
 		// handle window resize
-		props.setResizeFunc(() => {
-			calculatedDimensions = props.calculateDimensions(activeItem)
+		allProps.setResizeFunc(() => {
+			calculatedDimensions = allProps.calculateDimensions(activeItem)
 			// adjust image size / zoom on resize, but not on mobile because
 			// some browsers (ios safari 15) constantly resize screen on drag
 			if (opts.inline || !smallScreen) {
@@ -341,9 +358,9 @@
 			}
 		})
 		// decode initial image before rendering
-		props.loadImage(activeItem).then(() => {
+		allProps.loadImage(activeItem).then(() => {
 			loaded = true
-			props.preloadNext()
+			allProps.preloadNext()
 		})
 		// show loading indicator if needed
 		setTimeout(() => {
@@ -351,7 +368,7 @@
 		}, 250)
 	}
 
-	const addSrc = (node) => {
+	const addSrc = (node: HTMLImageElement) => {
 		addAttributes(node, activeItem.attr)
 		node.srcset = activeItem.img
 	}
